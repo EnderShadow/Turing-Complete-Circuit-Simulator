@@ -1145,7 +1145,7 @@ mod tests {
 
     #[test]
     fn test_byte_adder_naive_ripple() {
-        let (mut components, num_wires, data_bytes_needed) = read_from_save("/home/matthew/.local/share/godot/app_userdata/Turing Complete/schematics/byte_adder/Ripple/circuit.data");
+        let (mut components, num_wires, data_bytes_needed) = read_from_save("test/resources/byte_adder/standard-ripple-carry.data");
 
         let mut first_input = true;
         for c in components.iter_mut() {
@@ -1220,7 +1220,7 @@ mod tests {
 
     #[test]
     fn test_byte_adder_64_20() {
-        let (mut components, num_wires, data_bytes_needed) = read_from_save("/home/matthew/.local/share/godot/app_userdata/Turing Complete/schematics/byte_adder/Decomposed Ripple Switch Carry/circuit.data");
+        let (mut components, num_wires, data_bytes_needed) = read_from_save("test/resources/byte_adder/decomposed-ripple-switch-carry.data");
 
         let mut first_input = true;
         for c in components.iter_mut() {
@@ -1295,7 +1295,7 @@ mod tests {
 
     #[test]
     fn test_5bit_decoder() {
-        let (mut components, num_wires, data_bytes_needed) = read_from_save("/home/matthew/.local/share/godot/app_userdata/Turing Complete/schematics/component_factory/5 Bit Decoder/circuit.data");
+        let (mut components, num_wires, data_bytes_needed) = read_from_save("test/resources/5-bit-decoder.data");
 
         for c in components.iter_mut() {
             match &c.component_type {
