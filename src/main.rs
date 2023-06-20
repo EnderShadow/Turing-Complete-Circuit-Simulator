@@ -1,6 +1,7 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::env;
 use std::ops::Not;
+use std::rc::Rc;
 use crate::save_loader::{load_save, Wire, Point, Component as SaveComponent, ComponentType};
 use crate::simulator::{Component, IntermediateComponent, simulate};
 use crate::simulator::ComponentType::*;
@@ -9,7 +10,7 @@ mod save_loader;
 mod versions;
 mod simulator;
 
-const DEBUG: bool = true;
+const DEBUG: bool = false;
 
 fn main() {
     let args: Vec<String> = env::args().collect();
@@ -748,7 +749,7 @@ fn resolve_components(save_components: &Vec<SaveComponent>, dependencies: &Vec<u
             ComponentType::LevelInputArch => {panic!("Not Implemented")}
             ComponentType::Output1 => {
                 IntermediateComponent {
-                    component_type: Output(*c.custom_string.clone(), 1),
+                    component_type: Output(Rc::from(*c.custom_string.clone()), 1),
                     position: c.position,
                     inputs: vec![(Point {x: -1, y: 0}, 1)],
                     outputs: Vec::new(),
@@ -758,7 +759,7 @@ fn resolve_components(save_components: &Vec<SaveComponent>, dependencies: &Vec<u
             ComponentType::LevelOutput1Sum => {panic!("Not Implemented")}
             ComponentType::LevelOutput1Car => {
                 IntermediateComponent {
-                    component_type: Output(*c.custom_string.clone(), 1),
+                    component_type: Output(Rc::from(*c.custom_string.clone()), 1),
                     position: c.position,
                     inputs: vec![(Point {x: -1, y: 0}, 1)],
                     outputs: Vec::new(),
@@ -772,7 +773,7 @@ fn resolve_components(save_components: &Vec<SaveComponent>, dependencies: &Vec<u
             ComponentType::LevelOutput4Pin => {panic!("Not Implemented")}
             ComponentType::Output8 => {
                 IntermediateComponent {
-                    component_type: Output(*c.custom_string.clone(), 8),
+                    component_type: Output(Rc::from(*c.custom_string.clone()), 8),
                     position: c.position,
                     inputs: vec![(Point {x: -1, y: 0}, 8)],
                     outputs: Vec::new(),
@@ -781,7 +782,7 @@ fn resolve_components(save_components: &Vec<SaveComponent>, dependencies: &Vec<u
             }
             ComponentType::Output64 => {
                 IntermediateComponent {
-                    component_type: Output(*c.custom_string.clone(), 64),
+                    component_type: Output(Rc::from(*c.custom_string.clone()), 64),
                     position: c.position,
                     inputs: vec![(Point {x: -3, y: 0}, 64)],
                     outputs: Vec::new(),
@@ -862,7 +863,7 @@ fn resolve_components(save_components: &Vec<SaveComponent>, dependencies: &Vec<u
             ComponentType::Input32 => {panic!("Not Implemented")}
             ComponentType::Output16 => {
                 IntermediateComponent {
-                    component_type: Output(*c.custom_string.clone(), 16),
+                    component_type: Output(Rc::from(*c.custom_string.clone()), 16),
                     position: c.position,
                     inputs: vec![(Point {x: -2, y: 0}, 16)],
                     outputs: Vec::new(),
@@ -871,7 +872,7 @@ fn resolve_components(save_components: &Vec<SaveComponent>, dependencies: &Vec<u
             }
             ComponentType::Output32 => {
                 IntermediateComponent {
-                    component_type: Output(*c.custom_string.clone(), 32),
+                    component_type: Output(Rc::from(*c.custom_string.clone()), 32),
                     position: c.position,
                     inputs: vec![(Point {x: -2, y: 0}, 32)],
                     outputs: Vec::new(),
@@ -1064,7 +1065,7 @@ fn resolve_components(save_components: &Vec<SaveComponent>, dependencies: &Vec<u
             }
             ComponentType::LevelOutput1 => {
                 IntermediateComponent {
-                    component_type: Output(*c.custom_string.clone(), 1),
+                    component_type: Output(Rc::from(*c.custom_string.clone()), 1),
                     position: c.position,
                     inputs: vec![(Point {x: -1, y: 0}, 1)],
                     outputs: Vec::new(),
@@ -1073,7 +1074,7 @@ fn resolve_components(save_components: &Vec<SaveComponent>, dependencies: &Vec<u
             }
             ComponentType::LevelOutput8 => {
                 IntermediateComponent {
-                    component_type: Output(*c.custom_string.clone(), 8),
+                    component_type: Output(Rc::from(*c.custom_string.clone()), 8),
                     position: c.position,
                     inputs: vec![(Point {x: -1, y: 0}, 8)],
                     outputs: Vec::new(),
@@ -1145,6 +1146,8 @@ fn resolve_components(save_components: &Vec<SaveComponent>, dependencies: &Vec<u
 
 #[cfg(test)]
 mod tests {
+    use std::collections::HashMap;
+    use std::rc::Rc;
     use std::time::Instant;
     use crate::{DEBUG, read_from_save};
     use crate::simulator::ComponentType::{Input, Output};
@@ -1169,10 +1172,10 @@ mod tests {
                     c.component_type = Input("Carry In".to_string(), 1);
                 },
                 Output(_, 8) => {
-                    c.component_type = Output("Sum".to_string(), 8)
+                    c.component_type = Output(Rc::from("Sum"), 8)
                 },
                 Output(_, 1) => {
-                    c.component_type = Output("Carry Out".to_string(), 1)
+                    c.component_type = Output(Rc::from("Carry Out"), 1)
                 },
                 _ => {}
             }
@@ -1210,7 +1213,9 @@ mod tests {
             },
             Ok(output_list) => {
                 println!("Simulation successfully exited after {} ticks", output_list.len());
-                for (tick, outputs) in output_list.iter().enumerate() {
+                for (tick, outputs) in output_list.into_iter().enumerate() {
+                    let outputs = outputs.into_iter().collect::<HashMap<_, _>>();
+
                     let input_a = input_function(tick as u64, "Input A");
                     let input_b = input_function(tick as u64, "Input B");
                     let carry_in = input_function(tick as u64, "Carry In");
@@ -1244,10 +1249,10 @@ mod tests {
                     c.component_type = Input("Carry In".to_string(), 1);
                 },
                 Output(_, 8) => {
-                    c.component_type = Output("Sum".to_string(), 8)
+                    c.component_type = Output(Rc::from("Sum"), 8)
                 },
                 Output(_, 1) => {
-                    c.component_type = Output("Carry Out".to_string(), 1)
+                    c.component_type = Output(Rc::from("Carry Out"), 1)
                 },
                 _ => {}
             }
@@ -1285,7 +1290,9 @@ mod tests {
             },
             Ok(output_list) => {
                 println!("Simulation successfully exited after {} ticks", output_list.len());
-                for (tick, outputs) in output_list.iter().enumerate() {
+                for (tick, outputs) in output_list.into_iter().enumerate() {
+                    let outputs = outputs.into_iter().collect::<HashMap<_, _>>();
+
                     let input_a = input_function(tick as u64, "Input A");
                     let input_b = input_function(tick as u64, "Input B");
                     let carry_in = input_function(tick as u64, "Carry In");
@@ -1313,7 +1320,7 @@ mod tests {
                     c.component_type = Input("Disable".to_string(), 1);
                 },
                 Output(_, 32) => {
-                    c.component_type = Output("Output".to_string(), 32)
+                    c.component_type = Output(Rc::from("Output"), 32)
                 },
                 _ => {}
             }
@@ -1344,7 +1351,9 @@ mod tests {
             },
             Ok(output_list) => {
                 println!("Simulation successfully exited after {} ticks", output_list.len());
-                for (tick, outputs) in output_list.iter().enumerate() {
+                for (tick, outputs) in output_list.into_iter().enumerate() {
+                    let outputs = outputs.into_iter().collect::<HashMap<_, _>>();
+
                     let input = input_function(tick as u64, "Input");
                     let disable = input_function(tick as u64, "Disable");
                     let expected_output = if disable != 0 {0u64} else {1 << input};

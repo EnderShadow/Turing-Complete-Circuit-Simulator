@@ -1,5 +1,6 @@
 use std::collections::{HashMap, HashSet};
 use std::ops::Not;
+use std::rc::Rc;
 use crate::DEBUG;
 use crate::save_loader::Point;
 
@@ -7,9 +8,9 @@ use crate::save_loader::Point;
 pub enum ComponentType {
     Input(String, u8),
     SwitchedInput(String, u8),
-    Output(String, u8),
-    SwitchedOutput(String, u8),
-    BidirectionalIO(String, u8),
+    Output(Rc<str>, u8),
+    SwitchedOutput(Rc<str>, u8),
+    BidirectionalIO(Rc<str>, u8),
     Buffer(u8),
     Not(u8),
     Switch(u8),
@@ -238,7 +239,7 @@ fn write_wire(wires: &mut Vec<(u64, u64)>, index: usize, size: u8, new_value: u6
     }
 }
 
-pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes: usize, tick_limit: u64, print_output: bool, input_fn: impl Fn(u64, &str) -> u64) -> Result<Vec<HashMap<String, u64>>, String> {
+pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes: usize, tick_limit: u64, print_output: bool, input_fn: impl Fn(u64, &str) -> u64) -> Result<Vec<Vec<(Rc<str>, u64)>>, String> {
     let mut data = vec![0u8; data_needed_bytes];
     let components = dag_sort(components, num_wires);
 
@@ -250,11 +251,11 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
     }
 
     let mut iteration = 0u64;
-    let mut output_list = Vec::<HashMap<String, u64>>::new();
+    let mut output_list = Vec::<Vec<(Rc<str>, u64)>>::new();
 
     while iteration < tick_limit {
         let mut wires = vec![(0, 0); num_wires + 1];
-        let mut tick_outputs = HashMap::<String, u64>::new();
+        let mut tick_outputs = Vec::<(Rc<str>, u64)>::new();
 
         for c in &components {
             match &c.component_type {
@@ -271,18 +272,18 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
                 }
                 ComponentType::Output(name, x) => {
                     let v = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
-                    tick_outputs.insert(name.clone(), v);
+                    tick_outputs.push((Rc::clone(name), v));
                 }
                 ComponentType::SwitchedOutput(name, x) => {
                     let enable = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), 1);
                     if enable != 0 {
                         let v = read_wire(&wires, c.inputs[1].0.unwrap_or(num_wires), *x);
-                        tick_outputs.insert(name.clone(), v);
+                        tick_outputs.push((Rc::clone(name), v));
                     }
                 }
                 ComponentType::BidirectionalIO(name, x) => {
                     let v = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
-                    tick_outputs.insert(name.clone(), v);
+                    tick_outputs.push((Rc::clone(name), v));
                 }
                 ComponentType::Buffer(x) => {
                     let input = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
