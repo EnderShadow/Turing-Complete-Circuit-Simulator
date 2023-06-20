@@ -1,4 +1,5 @@
 use std::collections::{HashMap, HashSet, VecDeque};
+use std::env;
 use std::ops::Not;
 use crate::save_loader::{load_save, Wire, Point, Component as SaveComponent, ComponentType};
 use crate::simulator::{Component, IntermediateComponent, simulate};
@@ -8,10 +9,16 @@ mod save_loader;
 mod versions;
 mod simulator;
 
-const DEBUG: bool = false;
+const DEBUG: bool = true;
 
 fn main() {
-    let (mut components, num_wires, data_bytes_needed) = read_from_save("/home/matthew/.local/share/godot/app_userdata/Turing Complete/schematics/component_factory/Byte Hold Latch/circuit.data");
+    let args: Vec<String> = env::args().collect();
+    if args.len() < 2 {
+        println!("Missing circuit.data file. Pass the circuit.data file to simulate as an argument.");
+        return;
+    }
+
+    let (mut components, num_wires, data_bytes_needed) = read_from_save(&args[1]);
 
     for c in components.iter_mut() {
         if DEBUG {
