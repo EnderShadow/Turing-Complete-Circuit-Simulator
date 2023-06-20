@@ -251,7 +251,11 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
     }
 
     let mut iteration = 0u64;
-    let mut output_list = Vec::<Vec<(Rc<str>, u64)>>::new();
+    let mut output_list = if tick_limit < 100_000 {
+        Vec::<Vec<(Rc<str>, u64)>>::with_capacity(tick_limit as usize)
+    } else {
+        Vec::<Vec<(Rc<str>, u64)>>::with_capacity(100_000)
+    };
 
     while iteration < tick_limit {
         let mut wires = vec![(0, 0); num_wires + 1];
