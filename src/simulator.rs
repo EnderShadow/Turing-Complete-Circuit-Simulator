@@ -180,7 +180,7 @@ fn remove_matching<T>(vec: &mut Vec<T>, p: impl Fn(&T) -> bool) -> Vec<T> {
     return removed;
 }
 
-fn dag_sort(mut remaining_components: Vec<Component>, num_wires: usize) -> Vec<Component> {
+fn dag_sort(mut remaining_components: Vec<Component>, num_wires: usize) -> Result<Vec<Component>, String> {
     let mut sorted = remove_matching(&mut remaining_components, |c| {
         c.inputs.is_empty()
     });
@@ -210,14 +210,14 @@ fn dag_sort(mut remaining_components: Vec<Component>, num_wires: usize) -> Vec<C
         });
         if matching.is_empty() {
             println!("{:?}", remaining_components);
-            panic!("Circular dependency detected");
+            return Err("Circular dependency detected.".to_string());
         }
         sorted.extend(matching);
     }
 
     sorted.extend(process_last);
 
-    return sorted;
+    return Ok(sorted);
 }
 
 fn read_wire(wires: &Vec<(u64, u64)>, index: usize, size: u8) -> u64 {
@@ -239,9 +239,9 @@ fn write_wire(wires: &mut Vec<(u64, u64)>, index: usize, size: u8, new_value: u6
     }
 }
 
-pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes: usize, tick_limit: u64, print_output: bool, input_fn: impl Fn(u64, &str) -> u64) -> Result<Vec<Vec<(Rc<str>, u64)>>, String> {
+pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes: usize, tick_limit: u64, print_output: bool, input_fn: impl Fn(u64, &str) -> u64, output_check_fn: impl Fn(u64, &HashMap<Rc<str>, u64>) -> bool) -> Result<u64, String> {
     let mut data = vec![0u8; data_needed_bytes];
-    let components = dag_sort(components, num_wires);
+    let components = dag_sort(components, num_wires)?;
 
     if DEBUG {
         println!();
@@ -251,15 +251,10 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
     }
 
     let mut iteration = 0u64;
-    let mut output_list = if tick_limit < 100_000 {
-        Vec::<Vec<(Rc<str>, u64)>>::with_capacity(tick_limit as usize)
-    } else {
-        Vec::<Vec<(Rc<str>, u64)>>::with_capacity(100_000)
-    };
 
     while iteration < tick_limit {
         let mut wires = vec![(0, 0); num_wires + 1];
-        let mut tick_outputs = Vec::<(Rc<str>, u64)>::new();
+        let mut tick_outputs = HashMap::<Rc<str>, u64>::new();
 
         for c in &components {
             match &c.component_type {
@@ -276,18 +271,18 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
                 }
                 ComponentType::Output(name, x) => {
                     let v = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
-                    tick_outputs.push((Rc::clone(name), v));
+                    tick_outputs.insert(Rc::clone(name), v);
                 }
                 ComponentType::SwitchedOutput(name, x) => {
                     let enable = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), 1);
                     if enable != 0 {
                         let v = read_wire(&wires, c.inputs[1].0.unwrap_or(num_wires), *x);
-                        tick_outputs.push((Rc::clone(name), v));
+                        tick_outputs.insert(Rc::clone(name), v);
                     }
                 }
                 ComponentType::BidirectionalIO(name, x) => {
                     let v = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
-                    tick_outputs.push((Rc::clone(name), v));
+                    tick_outputs.insert(Rc::clone(name), v);
                 }
                 ComponentType::Buffer(x) => {
                     let input = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
@@ -523,9 +518,15 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
             }
         }
 
-        output_list.push(tick_outputs);
+        let passed = output_check_fn(iteration, &tick_outputs);
+        tick_outputs.clear();
+
         iteration += 1;
+
+        if !passed {
+            return Err(format!("Failed after {} ticks.", iteration))
+        }
     }
 
-    return Ok(output_list);
+    return Ok(iteration);
 }

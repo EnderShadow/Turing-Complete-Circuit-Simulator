@@ -27,13 +27,13 @@ fn main() {
         }
     }
 
-    let result = simulate(components, num_wires, data_bytes_needed, u64::MAX, true, |_, _| {0});
+    let result = simulate(components, num_wires, data_bytes_needed, u64::MAX, true, |_, _| {0}, |_, _| {true});
     match result {
         Err(error) => {
-            panic!("Error: {}", error);
+            println!("{}", error);
         },
-        Ok(output_list) => {
-            println!("Simulation successfully exited after {} ticks", output_list.len());
+        Ok(num_ticks) => {
+            println!("Simulation successfully exited after {} ticks", num_ticks);
         }
     }
 }
@@ -1202,30 +1202,31 @@ mod tests {
             }
         };
 
+        let output_check_function = |tick: u64, outputs: &HashMap<Rc<str>, u64>| -> bool {
+            let input_a = input_function(tick, "Input A");
+            let input_b = input_function(tick, "Input B");
+            let carry_in = input_function(tick, "Carry In");
+            let expected_sum = (input_a + input_b + carry_in) & 0xFF;
+            let expected_carry = (input_a + input_b + carry_in) >> 8;
+            let actual_sum = outputs["Sum"];
+            let actual_carry = outputs["Carry Out"];
+
+            expected_sum == actual_sum && expected_carry == actual_carry
+        };
+
         let start = Instant::now();
-        let result = simulate(components, num_wires, data_bytes_needed, 1 << 17, false, input_function);
+        let result = simulate(components, num_wires, data_bytes_needed, 1 << 17, false, input_function, output_check_function);
         let end = Instant::now();
         println!("Simulation took {} seconds", (end - start).as_secs_f32());
 
         match result {
             Err(error) => {
-                panic!("Error: {}", error);
+                assert!(false);
+                println!("{}", error);
             },
-            Ok(output_list) => {
-                println!("Simulation successfully exited after {} ticks", output_list.len());
-                for (tick, outputs) in output_list.into_iter().enumerate() {
-                    let outputs = outputs.into_iter().collect::<HashMap<_, _>>();
-
-                    let input_a = input_function(tick as u64, "Input A");
-                    let input_b = input_function(tick as u64, "Input B");
-                    let carry_in = input_function(tick as u64, "Carry In");
-                    let expected_sum = (input_a + input_b + carry_in) & 0xFF;
-                    let expected_carry = (input_a + input_b + carry_in) >> 8;
-                    let actual_sum = outputs["Sum"];
-                    let actual_carry = outputs["Carry Out"];
-                    assert_eq!(expected_sum, actual_sum);
-                    assert_eq!(expected_carry, actual_carry);
-                }
+            Ok(num_ticks) => {
+                println!("Simulation successfully exited after {} ticks", num_ticks);
+                assert!(true);
             }
         }
     }
@@ -1279,30 +1280,31 @@ mod tests {
             }
         };
 
+        let output_check_function = |tick: u64, outputs: &HashMap<Rc<str>, u64>| -> bool {
+            let input_a = input_function(tick, "Input A");
+            let input_b = input_function(tick, "Input B");
+            let carry_in = input_function(tick, "Carry In");
+            let expected_sum = (input_a + input_b + carry_in) & 0xFF;
+            let expected_carry = (input_a + input_b + carry_in) >> 8;
+            let actual_sum = outputs["Sum"];
+            let actual_carry = outputs["Carry Out"];
+
+            expected_sum == actual_sum && expected_carry == actual_carry
+        };
+
         let start = Instant::now();
-        let result = simulate(components, num_wires, data_bytes_needed, 1 << 17, false, input_function);
+        let result = simulate(components, num_wires, data_bytes_needed, 1 << 17, false, input_function, output_check_function);
         let end = Instant::now();
         println!("Simulation took {} seconds", (end - start).as_secs_f32());
 
         match result {
             Err(error) => {
-                panic!("Error: {}", error);
+                assert!(false);
+                println!("{}", error);
             },
-            Ok(output_list) => {
-                println!("Simulation successfully exited after {} ticks", output_list.len());
-                for (tick, outputs) in output_list.into_iter().enumerate() {
-                    let outputs = outputs.into_iter().collect::<HashMap<_, _>>();
-
-                    let input_a = input_function(tick as u64, "Input A");
-                    let input_b = input_function(tick as u64, "Input B");
-                    let carry_in = input_function(tick as u64, "Carry In");
-                    let expected_sum = (input_a + input_b + carry_in) & 0xFF;
-                    let expected_carry = (input_a + input_b + carry_in) >> 8;
-                    let actual_sum = outputs["Sum"];
-                    let actual_carry = outputs["Carry Out"];
-                    assert_eq!(expected_sum, actual_sum);
-                    assert_eq!(expected_carry, actual_carry);
-                }
+            Ok(num_ticks) => {
+                println!("Simulation successfully exited after {} ticks", num_ticks);
+                assert!(true);
             }
         }
     }
@@ -1344,22 +1346,24 @@ mod tests {
             }
         };
 
-        let result = simulate(components, num_wires, data_bytes_needed, 64, false, input_function);
+        let output_check_function = |tick: u64, outputs: &HashMap<Rc<str>, u64>| -> bool {
+            let input = input_function(tick, "Input");
+            let disable = input_function(tick, "Disable");
+            let expected_output = if disable != 0 {0u64} else {1 << input};
+            let actual_output = outputs["Output"];
+
+            expected_output == actual_output
+        };
+
+        let result = simulate(components, num_wires, data_bytes_needed, 64, false, input_function, output_check_function);
         match result {
             Err(error) => {
-                panic!("Error: {}", error);
+                assert!(false);
+                println!("{}", error);
             },
-            Ok(output_list) => {
-                println!("Simulation successfully exited after {} ticks", output_list.len());
-                for (tick, outputs) in output_list.into_iter().enumerate() {
-                    let outputs = outputs.into_iter().collect::<HashMap<_, _>>();
-
-                    let input = input_function(tick as u64, "Input");
-                    let disable = input_function(tick as u64, "Disable");
-                    let expected_output = if disable != 0 {0u64} else {1 << input};
-                    let actual_output = outputs["Output"];
-                    assert_eq!(expected_output, actual_output);
-                }
+            Ok(num_ticks) => {
+                println!("Simulation successfully exited after {} ticks", num_ticks);
+                assert!(true);
             }
         }
     }
