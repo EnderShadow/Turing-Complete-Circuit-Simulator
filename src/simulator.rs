@@ -241,6 +241,16 @@ fn read_wire(wires: &Vec<(u64, u64)>, index: usize, size: u8) -> u64 {
     wire & driven & (u64::MAX >> (64 - size))
 }
 
+fn read_wire1(wires: &Vec<(u64, u64)>, index: usize) -> bool {
+    let (wire, driven) = wires[index];
+    (wire & driven) & 1 != 0
+}
+
+fn read_wire8(wires: &Vec<(u64, u64)>, index: usize) -> u8 {
+    let (wire, driven) = wires[index];
+    (wire & driven) as u8
+}
+
 fn write_wire(wires: &mut Vec<(u64, u64)>, index: usize, size: u8, new_value: u64, new_driven: u64) -> Result<(), String>{
     let (wire, driven) = wires[index];
     let size_mask = u64::MAX >> (64 - size);
@@ -280,8 +290,8 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
                 }
                 ComponentType::SwitchedInput(name, x) => {
                     let value = input_fn(iteration, c.data_offset);
-                    let enable = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), 1);
-                    if enable != 0 {
+                    let enable = read_wire1(&wires, c.inputs[0].0.unwrap_or(num_wires));
+                    if enable {
                         c.outputs[0].0.map(|i| { write_wire(&mut wires, i, *x, value, u64::MAX >> (64 - *x)) }).unwrap_or(Ok(()))?;
                     }
                 }
@@ -290,8 +300,8 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
                     tick_outputs[c.data_offset] = Some(v);
                 }
                 ComponentType::SwitchedOutput(name, x) => {
-                    let enable = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), 1);
-                    if enable != 0 {
+                    let enable = read_wire1(&wires, c.inputs[0].0.unwrap_or(num_wires));
+                    if enable {
                         let v = read_wire(&wires, c.inputs[1].0.unwrap_or(num_wires), *x);
                         tick_outputs[c.data_offset] = Some(v);
                     } else {
@@ -311,8 +321,8 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
                     c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, input.not(), u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
                 }
                 ComponentType::Switch(x) => {
-                    let enable = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), 1);
-                    if enable != 0 {
+                    let enable = read_wire1(&wires, c.inputs[0].0.unwrap_or(num_wires));
+                    if enable {
                         let input = read_wire(&wires, c.inputs[1].0.unwrap_or(num_wires), *x);
                         c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, input, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
                     }
@@ -406,8 +416,8 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
                     let i0 = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), 1);
                     let i1 = read_wire(&wires, c.inputs[1].0.unwrap_or(num_wires), 1);
                     let i2 = read_wire(&wires, c.inputs[2].0.unwrap_or(num_wires), 1);
-                    let disable = read_wire(&wires, c.inputs[3].0.unwrap_or(num_wires), 1);
-                    let on_idx = if disable == 1 {
+                    let disable = read_wire1(&wires, c.inputs[3].0.unwrap_or(num_wires));
+                    let on_idx = if disable {
                         u64::MAX
                     } else {
                         (i2 << 2) | (i1 << 1) | i0
