@@ -304,48 +304,48 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
                 }
                 ComponentType::Buffer(x) => {
                     let input = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
-                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, input, u64::MAX >> (64 - *x))});
+                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, input, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
                 }
                 ComponentType::Not(x) => {
                     let input = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
-                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, input.not(), u64::MAX >> (64 - *x))});
+                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, input.not(), u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
                 }
                 ComponentType::Switch(x) => {
                     let enable = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), 1);
                     if enable != 0 {
                         let input = read_wire(&wires, c.inputs[1].0.unwrap_or(num_wires), *x);
-                        c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, input, u64::MAX >> (64 - *x))});
+                        c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, input, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
                     }
                 }
                 ComponentType::And(x) => {
                     let input0 = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
                     let input1 = read_wire(&wires, c.inputs[1].0.unwrap_or(num_wires), *x);
-                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, input0 & input1, u64::MAX >> (64 - *x))});
+                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, input0 & input1, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
                 }
                 ComponentType::Or(x) => {
                     let input0 = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
                     let input1 = read_wire(&wires, c.inputs[1].0.unwrap_or(num_wires), *x);
-                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, input0 | input1, u64::MAX >> (64 - *x))});
+                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, input0 | input1, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
                 }
                 ComponentType::Nand(x) => {
                     let input0 = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
                     let input1 = read_wire(&wires, c.inputs[1].0.unwrap_or(num_wires), *x);
-                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, (input0 & input1).not(), u64::MAX >> (64 - *x))});
+                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, (input0 & input1).not(), u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
                 }
                 ComponentType::Nor(x) => {
                     let input0 = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
                     let input1 = read_wire(&wires, c.inputs[1].0.unwrap_or(num_wires), *x);
-                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, (input0 | input1).not(), u64::MAX >> (64 - *x))});
+                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, (input0 | input1).not(), u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
                 }
                 ComponentType::Xor(x) => {
                     let input0 = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
                     let input1 = read_wire(&wires, c.inputs[1].0.unwrap_or(num_wires), *x);
-                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, input0 ^ input1, u64::MAX >> (64 - *x))});
+                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, input0 ^ input1, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
                 }
                 ComponentType::Xnor(x) => {
                     let input0 = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
                     let input1 = read_wire(&wires, c.inputs[1].0.unwrap_or(num_wires), *x);
-                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, (input0 ^ input1).not(), u64::MAX >> (64 - *x))});
+                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, (input0 ^ input1).not(), u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
                 }
                 ComponentType::Adder(x) => {
                     let carry_in = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), 1);
@@ -355,12 +355,12 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
                     let result = input_a as u128 + input_b as u128 + carry_in as u128;
                     let sum = result as u64;
                     let carry_out = (result >> *x) as u64;
-                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, sum, u64::MAX >> (64 - *x))});
-                    c.outputs[1].0.map(|i| {write_wire(&mut wires, i, 1, carry_out, 1)});
+                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, sum, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
+                    c.outputs[1].0.map(|i| {write_wire(&mut wires, i, 1, carry_out, 1)}).unwrap_or(Ok(()))?;
                 }
                 ComponentType::DelayLine(x) => {
                     let stored = u64::from_le_bytes(data[c.data_offset..(c.data_offset + 8)].try_into().unwrap());
-                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, stored, u64::MAX >> (64 - *x))});
+                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, stored, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
                 }
                 ComponentType::VirtualDelayLine(x) => {
                     let new_value = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
@@ -426,7 +426,7 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
                     let mut i = 0;
                     while i < 8 {
                         let v = (input >> i) & 1;
-                        c.outputs[i].0.map(|x| {write_wire(&mut wires, x, 1, v, 1)});
+                        c.outputs[i].0.map(|x| {write_wire(&mut wires, x, 1, v, 1)}).unwrap_or(Ok(()))?;
                         i += 1;
                     }
                 }
@@ -438,14 +438,14 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
                         acc |= input << i;
                         i += 1;
                     }
-                    c.outputs[0].0.map(|x| {write_wire(&mut wires, x, 8, acc, 0xFF)});
+                    c.outputs[0].0.map(|x| {write_wire(&mut wires, x, 8, acc, 0xFF)}).unwrap_or(Ok(()))?;
                 }
                 ComponentType::ByteSplitter2 => {
                     let input = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), 16);
                     let mut i = 0;
                     while i < 2 {
                         let v = (input >> (i << 3)) & 0xFF;
-                        c.outputs[i].0.map(|x| {write_wire(&mut wires, x, 8, v, 0xFF)});
+                        c.outputs[i].0.map(|x| {write_wire(&mut wires, x, 8, v, 0xFF)}).unwrap_or(Ok(()))?;
                         i += 1;
                     }
                 }
@@ -454,7 +454,7 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
                     let mut i = 0;
                     while i < 4 {
                         let v = (input >> (i << 3)) & 0xFF;
-                        c.outputs[i].0.map(|x| {write_wire(&mut wires, x, 8, v, 0xFF)});
+                        c.outputs[i].0.map(|x| {write_wire(&mut wires, x, 8, v, 0xFF)}).unwrap_or(Ok(()))?;
                         i += 1;
                     }
                 }
@@ -463,7 +463,7 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
                     let mut i = 0;
                     while i < 8 {
                         let v = (input >> (i << 3)) & 0xFF;
-                        c.outputs[i].0.map(|x| {write_wire(&mut wires, x, 8, v, 0xFF)});
+                        c.outputs[i].0.map(|x| {write_wire(&mut wires, x, 8, v, 0xFF)}).unwrap_or(Ok(()))?;
                         i += 1;
                     }
                 }
@@ -475,7 +475,7 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
                         acc |= input << (i << 3);
                         i += 1;
                     }
-                    c.outputs[0].0.map(|x| {write_wire(&mut wires, x, 16, acc, 0xFFFF)});
+                    c.outputs[0].0.map(|x| {write_wire(&mut wires, x, 16, acc, 0xFFFF)}).unwrap_or(Ok(()))?;
                 }
                 ComponentType::ByteMaker4 => {
                     let mut acc = 0u64;
@@ -485,7 +485,7 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
                         acc |= input << (i << 3);
                         i += 1;
                     }
-                    c.outputs[0].0.map(|x| {write_wire(&mut wires, x, 32, acc, 0xFFFF_FFFF)});
+                    c.outputs[0].0.map(|x| {write_wire(&mut wires, x, 32, acc, 0xFFFF_FFFF)}).unwrap_or(Ok(()))?;
                 }
                 ComponentType::ByteMaker8 => {
                     let mut acc = 0u64;
@@ -495,7 +495,7 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
                         acc |= input << (i << 3);
                         i += 1;
                     }
-                    c.outputs[0].0.map(|x| {write_wire(&mut wires, x, 64, acc, 0xFFFF_FFFF_FFFF_FFFF)});
+                    c.outputs[0].0.map(|x| {write_wire(&mut wires, x, 64, acc, 0xFFFF_FFFF_FFFF_FFFF)}).unwrap_or(Ok(()))?;
                 }
                 ComponentType::FileRom(_) => {}
                 ComponentType::Keyboard => {}
