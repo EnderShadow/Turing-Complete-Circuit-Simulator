@@ -1,3 +1,4 @@
+use std::cmp::Ordering;
 use std::collections::{HashMap, HashSet};
 use std::ops::Not;
 use std::rc::Rc;
@@ -77,7 +78,7 @@ pub enum ComponentType {
     VirtualRom(u64, u8),
     ConfigurableDelay(u8),
     Sound,
-    Halt,
+    Halt(String),
     BitIndexer(u8),
     ByteIndexer(u8),
     Program(String, u8),
@@ -186,9 +187,15 @@ fn dag_sort(mut remaining_components: Vec<Component>, num_wires: usize) -> Resul
     });
 
     // force all sinks, namely virtual components, to be processed last.
-    let process_last = remove_matching(&mut remaining_components, |c| {
+    let mut process_last = remove_matching(&mut remaining_components, |c| {
         c.outputs.is_empty() && c.bidirectional.is_empty()
     });
+
+    // move all halt components to the end.
+    let halts = remove_matching(&mut process_last, |c| {
+        matches!(c.component_type, ComponentType::Halt(_))
+    });
+    process_last.extend(halts);
 
     while !remaining_components.is_empty() {
         let remaining_components_clone = remaining_components.clone();
@@ -281,7 +288,6 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
     let mut tick_outputs: Vec<Option<u64>> = vec![None; num_outputs];
 
     while iteration < tick_limit {
-
         for c in &components {
             match &c.component_type {
                 ComponentType::Input(name, x) => {
@@ -375,27 +381,152 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
                 ComponentType::VirtualDelayLine(x) => {
                     let new_value = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
                     let to_store = u64::to_le_bytes(new_value);
-                    data[c.data_offset..(c.data_offset + 8)].copy_from_slice(&to_store[0..8])
+                    data[c.data_offset..(c.data_offset + 8)].copy_from_slice(&to_store)
                 }
-                ComponentType::Register(_) => {}
-                ComponentType::VirtualRegister(_) => {}
-                ComponentType::Shl(_) => {}
-                ComponentType::Shr(_) => {}
-                ComponentType::Rol(_) => {}
-                ComponentType::Ror(_) => {}
-                ComponentType::Ashr(_) => {}
-                ComponentType::Neg(_) => {}
-                ComponentType::Mul(_) => {}
-                ComponentType::Div(_) => {}
-                ComponentType::Equal(_) => {}
-                ComponentType::ULess(_) => {}
-                ComponentType::SLess(_) => {}
-                ComponentType::Mux(_) => {}
-                ComponentType::Counter(_, _) => {}
-                ComponentType::VirtualCounter(_, _) => {}
-                ComponentType::Constant(_, _) => {}
-                ComponentType::And3 => {}
-                ComponentType::Or3 => {}
+                ComponentType::Register(x) => {
+                    let read = read_wire1(&wires, c.inputs[0].0.unwrap_or(num_wires));
+                    if read {
+                        let stored = u64::from_le_bytes(data[c.data_offset..(c.data_offset + 8)].try_into().unwrap());
+                        c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, stored, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
+                    }
+                }
+                ComponentType::VirtualRegister(x) => {
+                    let write = read_wire1(&wires, c.inputs[0].0.unwrap_or(num_wires));
+                    if write {
+                        let new_value = read_wire(&wires, c.inputs[1].0.unwrap_or(num_wires), *x);
+                        let to_store = u64::to_le_bytes(new_value);
+                        data[c.data_offset..(c.data_offset + 8)].copy_from_slice(&to_store)
+                    }
+                }
+                ComponentType::Shl(x) => {
+                    let data = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
+                    let amount = read_wire8(&wires, c.inputs[1].0.unwrap_or(num_wires)) & (x.next_power_of_two() - 1);
+                    let result = data << amount;
+                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, result, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
+                }
+                ComponentType::Shr(x) => {
+                    let data = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
+                    let amount = read_wire8(&wires, c.inputs[1].0.unwrap_or(num_wires)) & (x.next_power_of_two() - 1);
+                    let result = data >> amount;
+                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, result, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
+                }
+                ComponentType::Rol(x) => {
+                    let data = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x) as u128;
+                    let amount = read_wire8(&wires, c.inputs[1].0.unwrap_or(num_wires)) & (x.next_power_of_two() - 1);
+                    let result = ((data << amount) | (data.wrapping_shr(*x as u32 - amount as u32))) as u64;
+                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, result, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
+                }
+                ComponentType::Ror(x) => {
+                    let data = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x) as u128;
+                    let amount = read_wire8(&wires, c.inputs[1].0.unwrap_or(num_wires)) & (x.next_power_of_two() - 1);
+                    let result = ((data >> amount) | (data.wrapping_shl(*x as u32 - amount as u32))) as u64;
+                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, result, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
+                }
+                ComponentType::Ashr(x) => {
+                    let data = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
+                    let amount = read_wire8(&wires, c.inputs[1].0.unwrap_or(num_wires)) & (x.next_power_of_two() - 1);
+                    let sign = data & (1 << (*x - 1)) != 0;
+                    let result = if sign {
+                        (data | (u64::MAX << *x)) as i64 >> amount
+                    } else {
+                        data as i64 >> amount
+                    } as u64;
+                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, result, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
+                }
+                ComponentType::Neg(x) => {
+                    let input = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
+                    let result = -(input as i64) as u64;
+                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, result, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
+                }
+                ComponentType::Mul(x) => {
+                    let input0 = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x) as u128;
+                    let input1 = read_wire(&wires, c.inputs[1].0.unwrap_or(num_wires), *x) as u128;
+                    let result = input0 * input1;
+                    let output0 = result as u64;
+                    let output1 = (result >> *x) as u64;
+                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, output0, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
+                    c.outputs[1].0.map(|i| {write_wire(&mut wires, i, *x, output1, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
+                }
+                ComponentType::Div(x) => {
+                    let input0 = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
+                    let input1 = read_wire(&wires, c.inputs[1].0.unwrap_or(num_wires), *x);
+                    if input1 == 0 {
+                        return Err(format!("Divide by 0 on tick {}", iteration));
+                    }
+                    let output0 = input0 / input1;
+                    let output1 = input0 % input1;
+                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, output0, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
+                    c.outputs[1].0.map(|i| {write_wire(&mut wires, i, *x, output1, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
+                }
+                ComponentType::Equal(x) => {
+                    let input0 = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
+                    let input1 = read_wire(&wires, c.inputs[1].0.unwrap_or(num_wires), *x);
+                    let result = (input0 == input1) as u64;
+                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, 1, result, 1)}).unwrap_or(Ok(()))?;
+                }
+                ComponentType::ULess(x) => {
+                    let input0 = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
+                    let input1 = read_wire(&wires, c.inputs[1].0.unwrap_or(num_wires), *x);
+                    let result = (input0 < input1) as u64;
+                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, 1, result, 1)}).unwrap_or(Ok(()))?;
+                }
+                ComponentType::SLess(x) => {
+                    let input0 = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x) as i64;
+                    let input1 = read_wire(&wires, c.inputs[1].0.unwrap_or(num_wires), *x) as i64;
+                    let result = (input0 < input1) as u64;
+                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, 1, result, 1)}).unwrap_or(Ok(()))?;
+                }
+                ComponentType::Mux(x) => {
+                    let select = read_wire1(&wires, c.inputs[0].0.unwrap_or(num_wires));
+                    let input0 = read_wire(&wires, c.inputs[1].0.unwrap_or(num_wires), *x);
+                    let input1 = read_wire(&wires, c.inputs[2].0.unwrap_or(num_wires), *x);
+
+                    let result = if select {
+                        input1
+                    } else {
+                        input0
+                    };
+
+                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, result, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
+                }
+                ComponentType::Counter(increment, x) => {
+                    let stored = u64::from_le_bytes(data[c.data_offset..(c.data_offset + 8)].try_into().unwrap());
+                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, stored, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
+                }
+                ComponentType::VirtualCounter(increment, x) => {
+                    let overwrite = read_wire1(&wires, c.inputs[0].0.unwrap_or(num_wires));
+                    if overwrite {
+                        let new_value = read_wire(&wires, c.inputs[1].0.unwrap_or(num_wires), *x);
+                        let to_store = u64::to_le_bytes(new_value);
+                        data[c.data_offset..(c.data_offset + 8)].copy_from_slice(&to_store)
+                    } else {
+                        let stored = u64::from_le_bytes(data[c.data_offset..(c.data_offset + 8)].try_into().unwrap());
+                        let new_value = stored.wrapping_add(*increment);
+                        let to_store = u64::to_le_bytes(new_value);
+                        data[c.data_offset..(c.data_offset + 8)].copy_from_slice(&to_store)
+                    }
+                }
+                ComponentType::Constant(value, x) => {
+                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, *value, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
+                }
+                ComponentType::And3 => {
+                    let input0 = read_wire1(&wires, c.inputs[0].0.unwrap_or(num_wires));
+                    let input1 = read_wire1(&wires, c.inputs[1].0.unwrap_or(num_wires));
+                    let input2 = read_wire1(&wires, c.inputs[2].0.unwrap_or(num_wires));
+
+                    let result = input0 & input1 & input2;
+
+                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, 1, result as u64, 1)}).unwrap_or(Ok(()))?;
+                }
+                ComponentType::Or3 => {
+                    let input0 = read_wire1(&wires, c.inputs[0].0.unwrap_or(num_wires));
+                    let input1 = read_wire1(&wires, c.inputs[1].0.unwrap_or(num_wires));
+                    let input2 = read_wire1(&wires, c.inputs[2].0.unwrap_or(num_wires));
+
+                    let result = input0 | input1 | input2;
+
+                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, 1, result as u64, 1)}).unwrap_or(Ok(()))?;
+                }
                 ComponentType::Dec1 => {
                     let i = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), 1);
                     c.outputs[0].0.map(|x| {write_wire(&mut wires, x, 1, 1 - i, 1)}).unwrap_or(Ok(()))?;
@@ -429,8 +560,17 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
                         i += 1;
                     }
                 }
-                ComponentType::BitMemory => {}
-                ComponentType::VirtualBitMemory => {}
+                ComponentType::BitMemory => {
+                    let stored = data[c.data_offset];
+                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, 1, stored as u64, 1)}).unwrap_or(Ok(()))?;
+                }
+                ComponentType::VirtualBitMemory => {
+                    let write = read_wire1(&wires, c.inputs[0].0.unwrap_or(num_wires));
+                    if write {
+                        let new_value = read_wire1(&wires, c.inputs[1].0.unwrap_or(num_wires));
+                        data[c.data_offset] = new_value as u8;
+                    }
+                }
                 ComponentType::ByteSplitter => {
                     let input = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), 8);
                     let mut i = 0;
@@ -529,7 +669,10 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
                 ComponentType::VirtualRom(_, _) => {}
                 ComponentType::ConfigurableDelay(_) => {}
                 ComponentType::Sound => {}
-                ComponentType::Halt => {}
+                ComponentType::Halt(message) => {
+                    println!("{}", message);
+                    return Ok(iteration)
+                }
                 ComponentType::BitIndexer(_) => {}
                 ComponentType::ByteIndexer(_) => {}
                 ComponentType::Program(_, _) => {}
