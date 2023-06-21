@@ -180,7 +180,7 @@ fn remove_matching<T>(vec: &mut Vec<T>, p: impl Fn(&T) -> bool) -> Vec<T> {
     return removed;
 }
 
-fn dag_sort(mut remaining_components: Vec<Component>, num_wires: usize) -> Result<Vec<Component>, String> {
+fn dag_sort(mut remaining_components: Vec<Component>, num_wires: usize) -> Result<(Vec<Component>, usize, usize), String> {
     let mut sorted = remove_matching(&mut remaining_components, |c| {
         c.inputs.is_empty()
     });
@@ -217,7 +217,23 @@ fn dag_sort(mut remaining_components: Vec<Component>, num_wires: usize) -> Resul
 
     sorted.extend(process_last);
 
-    return Ok(sorted);
+    let mut input_index: usize = 0;
+    let mut output_index: usize = 0;
+    for c in sorted.iter_mut() {
+        match c.component_type {
+            ComponentType::Input(_, _) | ComponentType::SwitchedInput(_, _) => {
+                c.data_offset = input_index;
+                input_index += 1;
+            }
+            ComponentType::Output(_, _) | ComponentType::SwitchedOutput(_, _) => {
+                c.data_offset = output_index;
+                output_index += 1;
+            }
+            _ => {}
+        }
+    }
+
+    return Ok((sorted, input_index, output_index));
 }
 
 fn read_wire(wires: &Vec<(u64, u64)>, index: usize, size: u8) -> u64 {
@@ -239,9 +255,9 @@ fn write_wire(wires: &mut Vec<(u64, u64)>, index: usize, size: u8, new_value: u6
     }
 }
 
-pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes: usize, tick_limit: u64, print_output: bool, input_fn: impl Fn(u64, &str) -> u64, output_check_fn: impl Fn(u64, &HashMap<Rc<str>, u64>) -> bool) -> Result<u64, String> {
+pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes: usize, tick_limit: u64, print_output: bool, input_fn: impl Fn(u64, usize) -> u64, output_check_fn: impl Fn(u64, &Vec<Option<u64>>) -> bool) -> Result<u64, String> {
     let mut data = vec![0u8; data_needed_bytes];
-    let components = dag_sort(components, num_wires)?;
+    let (components, num_inputs, num_outputs) = dag_sort(components, num_wires)?;
 
     if DEBUG {
         println!();
@@ -254,16 +270,16 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
 
     while iteration < tick_limit {
         let mut wires = vec![(0, 0); num_wires + 1];
-        let mut tick_outputs = HashMap::<Rc<str>, u64>::new();
+        let mut tick_outputs: Vec<Option<u64>> = vec![None; num_outputs];
 
         for c in &components {
             match &c.component_type {
                 ComponentType::Input(name, x) => {
-                    let value = input_fn(iteration, name);
+                    let value = input_fn(iteration, c.data_offset);
                     c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, value, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
                 }
                 ComponentType::SwitchedInput(name, x) => {
-                    let value = input_fn(iteration, name);
+                    let value = input_fn(iteration, c.data_offset);
                     let enable = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), 1);
                     if enable != 0 {
                         c.outputs[0].0.map(|i| { write_wire(&mut wires, i, *x, value, u64::MAX >> (64 - *x)) }).unwrap_or(Ok(()))?;
@@ -271,18 +287,18 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
                 }
                 ComponentType::Output(name, x) => {
                     let v = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
-                    tick_outputs.insert(Rc::clone(name), v);
+                    tick_outputs[c.data_offset] = Some(v);
                 }
                 ComponentType::SwitchedOutput(name, x) => {
                     let enable = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), 1);
                     if enable != 0 {
                         let v = read_wire(&wires, c.inputs[1].0.unwrap_or(num_wires), *x);
-                        tick_outputs.insert(Rc::clone(name), v);
+                        tick_outputs[c.data_offset] = Some(v);
                     }
                 }
                 ComponentType::BidirectionalIO(name, x) => {
                     let v = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
-                    tick_outputs.insert(Rc::clone(name), v);
+                    tick_outputs[c.data_offset] = Some(v);
                 }
                 ComponentType::Buffer(x) => {
                     let input = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
@@ -511,15 +527,17 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
             }
         }
 
-        if print_output && !tick_outputs.is_empty() {
+        if print_output && !tick_outputs.iter().any(|o| o.is_some()) {
             println!("Tick: {}", iteration);
-            for (name, output) in &tick_outputs {
-                println!("\t{}: {}", name, output);
+            for (index, output) in tick_outputs.iter().enumerate() {
+                if output.is_some() {
+                    println!("\tOutput {}: {}", index, output.unwrap());
+                }
             }
         }
 
         let passed = output_check_fn(iteration, &tick_outputs);
-        tick_outputs.clear();
+        tick_outputs.fill(None);
 
         iteration += 1;
 

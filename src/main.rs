@@ -1157,43 +1157,21 @@ mod tests {
     fn test_byte_adder_naive_ripple() {
         let (mut components, num_wires, data_bytes_needed) = read_from_save("test/resources/byte_adder/standard-ripple-carry.data");
 
-        let mut first_input = true;
         for c in components.iter_mut() {
-            match &c.component_type {
-                Input(_, 8) => {
-                    if first_input {
-                        c.component_type = Input("Input A".to_string(), 8);
-                        first_input = false
-                    } else {
-                        c.component_type = Input("Input B".to_string(), 8);
-                    }
-                },
-                Input(_, 1) => {
-                    c.component_type = Input("Carry In".to_string(), 1);
-                },
-                Output(_, 8) => {
-                    c.component_type = Output(Rc::from("Sum"), 8)
-                },
-                Output(_, 1) => {
-                    c.component_type = Output(Rc::from("Carry Out"), 1)
-                },
-                _ => {}
-            }
-
             if DEBUG {
                 println!("{:?}", c)
             }
         }
 
-        let input_function = |tick: u64, input_name: &str| -> u64 {
-            match input_name {
-                "Input A" => {
+        let input_function = |tick: u64, input_index: usize| -> u64 {
+            match input_index {
+                0 => {
                     tick & 0xFF
                 },
-                "Input B" => {
+                1 => {
                     (tick >> 8) & 0xFF
                 },
-                "Carry In" => {
+                2 => {
                     tick >> 16
                 },
                 _ => {
@@ -1202,14 +1180,14 @@ mod tests {
             }
         };
 
-        let output_check_function = |tick: u64, outputs: &HashMap<Rc<str>, u64>| -> bool {
-            let input_a = input_function(tick, "Input A");
-            let input_b = input_function(tick, "Input B");
-            let carry_in = input_function(tick, "Carry In");
+        let output_check_function = |tick: u64, outputs: &Vec<Option<u64>>| -> bool {
+            let input_a = input_function(tick, 0);
+            let input_b = input_function(tick, 1);
+            let carry_in = input_function(tick, 2);
             let expected_sum = (input_a + input_b + carry_in) & 0xFF;
             let expected_carry = (input_a + input_b + carry_in) >> 8;
-            let actual_sum = outputs["Sum"];
-            let actual_carry = outputs["Carry Out"];
+            let actual_sum = outputs[0].unwrap_or(u64::MAX);
+            let actual_carry = outputs[1].unwrap_or(u64::MAX);
 
             expected_sum == actual_sum && expected_carry == actual_carry
         };
@@ -1235,43 +1213,21 @@ mod tests {
     fn test_byte_adder_64_20() {
         let (mut components, num_wires, data_bytes_needed) = read_from_save("test/resources/byte_adder/decomposed-ripple-switch-carry.data");
 
-        let mut first_input = true;
         for c in components.iter_mut() {
-            match &c.component_type {
-                Input(_, 8) => {
-                    if first_input {
-                        c.component_type = Input("Input A".to_string(), 8);
-                        first_input = false
-                    } else {
-                        c.component_type = Input("Input B".to_string(), 8);
-                    }
-                },
-                Input(_, 1) => {
-                    c.component_type = Input("Carry In".to_string(), 1);
-                },
-                Output(_, 8) => {
-                    c.component_type = Output(Rc::from("Sum"), 8)
-                },
-                Output(_, 1) => {
-                    c.component_type = Output(Rc::from("Carry Out"), 1)
-                },
-                _ => {}
-            }
-
             if DEBUG {
                 println!("{:?}", c)
             }
         }
 
-        let input_function = |tick: u64, input_name: &str| -> u64 {
-            match input_name {
-                "Input A" => {
+        let input_function = |tick: u64, input_index: usize| -> u64 {
+            match input_index {
+                0 => {
                     tick & 0xFF
                 },
-                "Input B" => {
+                1 => {
                     (tick >> 8) & 0xFF
                 },
-                "Carry In" => {
+                2 => {
                     tick >> 16
                 },
                 _ => {
@@ -1280,14 +1236,14 @@ mod tests {
             }
         };
 
-        let output_check_function = |tick: u64, outputs: &HashMap<Rc<str>, u64>| -> bool {
-            let input_a = input_function(tick, "Input A");
-            let input_b = input_function(tick, "Input B");
-            let carry_in = input_function(tick, "Carry In");
+        let output_check_function = |tick: u64, outputs: &Vec<Option<u64>>| -> bool {
+            let input_a = input_function(tick, 0);
+            let input_b = input_function(tick, 1);
+            let carry_in = input_function(tick, 2);
             let expected_sum = (input_a + input_b + carry_in) & 0xFF;
             let expected_carry = (input_a + input_b + carry_in) >> 8;
-            let actual_sum = outputs["Sum"];
-            let actual_carry = outputs["Carry Out"];
+            let actual_sum = outputs[0].unwrap_or(u64::MAX);
+            let actual_carry = outputs[1].unwrap_or(u64::MAX);
 
             expected_sum == actual_sum && expected_carry == actual_carry
         };
@@ -1314,30 +1270,17 @@ mod tests {
         let (mut components, num_wires, data_bytes_needed) = read_from_save("test/resources/5-bit-decoder.data");
 
         for c in components.iter_mut() {
-            match &c.component_type {
-                Input(_, 8) => {
-                    c.component_type = Input("Input".to_string(), 8)
-                },
-                Input(_, 1) => {
-                    c.component_type = Input("Disable".to_string(), 1);
-                },
-                Output(_, 32) => {
-                    c.component_type = Output(Rc::from("Output"), 32)
-                },
-                _ => {}
-            }
-
             if DEBUG {
                 println!("{:?}", c)
             }
         }
 
-        let input_function = |tick: u64, input_name: &str| -> u64 {
-            match input_name {
-                "Input" => {
+        let input_function = |tick: u64, input_index: usize| -> u64 {
+            match input_index {
+                0 => {
                     tick & 0x1F
                 },
-                "Disable" => {
+                1 => {
                     tick >> 5
                 },
                 _ => {
@@ -1346,13 +1289,13 @@ mod tests {
             }
         };
 
-        let output_check_function = |tick: u64, outputs: &HashMap<Rc<str>, u64>| -> bool {
-            let input = input_function(tick, "Input");
-            let disable = input_function(tick, "Disable");
+        let output_check_function = |tick: u64, outputs: &Vec<Option<u64>>| -> bool {
+            let input = input_function(tick, 0);
+            let disable = input_function(tick, 1);
             let expected_output = if disable != 0 {0u64} else {1 << input};
-            let actual_output = outputs["Output"];
+            let actual_output = outputs[0];
 
-            expected_output == actual_output
+            expected_output == actual_output.unwrap_or(u64::MAX)
         };
 
         let result = simulate(components, num_wires, data_bytes_needed, 64, false, input_function, output_check_function);
