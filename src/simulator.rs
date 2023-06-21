@@ -294,6 +294,8 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
                     if enable != 0 {
                         let v = read_wire(&wires, c.inputs[1].0.unwrap_or(num_wires), *x);
                         tick_outputs[c.data_offset] = Some(v);
+                    } else {
+                        tick_outputs[c.data_offset] = None;
                     }
                 }
                 ComponentType::BidirectionalIO(name, x) => {
@@ -537,7 +539,6 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
         }
 
         let passed = output_check_fn(iteration, &tick_outputs);
-        tick_outputs.fill(None);
 
         iteration += 1;
 
