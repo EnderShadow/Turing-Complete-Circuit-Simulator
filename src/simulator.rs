@@ -267,10 +267,10 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
     }
 
     let mut iteration = 0u64;
+    let mut wires = vec![(0, 0); num_wires + 1];
+    let mut tick_outputs: Vec<Option<u64>> = vec![None; num_outputs];
 
     while iteration < tick_limit {
-        let mut wires = vec![(0, 0); num_wires + 1];
-        let mut tick_outputs: Vec<Option<u64>> = vec![None; num_outputs];
 
         for c in &components {
             match &c.component_type {
@@ -545,6 +545,8 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
         if !passed {
             return Err(format!("Failed after {} ticks.", iteration))
         }
+
+        wires.fill((0, 0));
     }
 
     return Ok(iteration);
