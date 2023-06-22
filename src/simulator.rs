@@ -270,7 +270,7 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, latency_ram_tick_d
             ComponentType::Input(_, _) | ComponentType::SwitchedInput(_, _) => {
                 num_inputs = max(num_inputs, c.numeric_id);
             }
-            ComponentType::Output(_, _) | ComponentType::SwitchedOutput(_, _) => {
+            ComponentType::Output(_, _) | ComponentType::SwitchedOutput(_, _) | ComponentType::BidirectionalIO(_, _) => {
                 num_outputs = max(num_outputs, c.numeric_id);
             }
             ComponentType::LatencyRam(_, _) => {
