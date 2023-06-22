@@ -5,6 +5,7 @@ use std::rc::Rc;
 use crate::save_loader::{load_save, Wire, Point, Component as SaveComponent, ComponentType};
 use crate::simulator::{Component, IntermediateComponent, simulate};
 use crate::simulator::ComponentType::*;
+use argparse::{ArgumentParser, Store, StoreTrue};
 
 mod save_loader;
 mod versions;
@@ -13,13 +14,16 @@ mod simulator;
 const DEBUG: bool = false;
 
 fn main() {
-    let args: Vec<String> = env::args().collect();
-    if args.len() < 2 {
-        println!("Missing circuit.data file. Pass the circuit.data file to simulate as an argument.");
-        return;
+    let mut path = String::new();
+
+    {
+        let mut ap = ArgumentParser::new();
+        ap.set_description("Turing Complete Circuit Simulator");
+        ap.refer(&mut path).add_argument("path", Store, "The path to the circuit.data file.");
+        ap.parse_args_or_exit();
     }
 
-    let (mut components, num_wires, data_bytes_needed, delay) = read_from_save(&args[1]);
+    let (mut components, num_wires, data_bytes_needed, delay) = read_from_save(&path);
 
     for c in components.iter_mut() {
         if DEBUG {
