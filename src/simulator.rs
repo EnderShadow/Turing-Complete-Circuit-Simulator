@@ -1,4 +1,4 @@
-use std::cmp::Ordering;
+use std::cmp::{max, Ordering};
 use std::collections::{HashMap, HashSet};
 use std::ops::Not;
 use std::rc::Rc;
@@ -112,7 +112,8 @@ pub struct Component {
     pub inputs: Vec<(Option<usize>, u8)>,
     pub outputs: Vec<(Option<usize>, u8, bool)>,
     pub bidirectional: Vec<(Option<usize>, u8)>,
-    pub data_offset: usize
+    pub data_offset: usize,
+    pub numeric_id: usize
 }
 
 #[derive(Debug, Clone)]
@@ -181,7 +182,7 @@ fn remove_matching<T>(vec: &mut Vec<T>, p: impl Fn(&T) -> bool) -> Vec<T> {
     return removed;
 }
 
-fn dag_sort(mut remaining_components: Vec<Component>, num_wires: usize) -> Result<(Vec<Component>, usize, usize), String> {
+fn dag_sort(mut remaining_components: Vec<Component>, num_wires: usize) -> Result<Vec<Component>, String> {
     let mut sorted = remove_matching(&mut remaining_components, |c| {
         c.inputs.is_empty()
     });
@@ -224,23 +225,7 @@ fn dag_sort(mut remaining_components: Vec<Component>, num_wires: usize) -> Resul
 
     sorted.extend(process_last);
 
-    let mut input_index: usize = 0;
-    let mut output_index: usize = 0;
-    for c in sorted.iter_mut() {
-        match c.component_type {
-            ComponentType::Input(_, _) | ComponentType::SwitchedInput(_, _) => {
-                c.data_offset = input_index;
-                input_index += 1;
-            }
-            ComponentType::Output(_, _) | ComponentType::SwitchedOutput(_, _) => {
-                c.data_offset = output_index;
-                output_index += 1;
-            }
-            _ => {}
-        }
-    }
-
-    return Ok((sorted, input_index, output_index));
+    return Ok(sorted);
 }
 
 fn read_wire(wires: &Vec<(u64, u64)>, index: usize, size: u8) -> u64 {
@@ -272,9 +257,32 @@ fn write_wire(wires: &mut Vec<(u64, u64)>, index: usize, size: u8, new_value: u6
     }
 }
 
-pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes: usize, tick_limit: u64, print_output: bool, input_fn: impl Fn(u64, usize) -> u64, output_check_fn: impl Fn(u64, &Vec<Option<u64>>) -> bool) -> Result<u64, String> {
+pub fn simulate(components: Vec<Component>, num_wires: usize, latency_ram_tick_delay: u64, data_needed_bytes: usize, tick_limit: u64, print_output: bool, input_fn: impl Fn(u64, usize) -> u64, output_check_fn: impl Fn(u64, &Vec<Option<u64>>) -> bool) -> Result<u64, String> {
     let mut data = vec![0u8; data_needed_bytes];
-    let (components, num_inputs, num_outputs) = dag_sort(components, num_wires)?;
+    let components = dag_sort(components, num_wires)?;
+
+    let mut num_inputs: usize = 0;
+    let mut num_outputs: usize = 0;
+    let mut num_latency_ram: usize = 0;
+
+    for c in &components {
+        match c.component_type {
+            ComponentType::Input(_, _) | ComponentType::SwitchedInput(_, _) => {
+                num_inputs = max(num_inputs, c.numeric_id);
+            }
+            ComponentType::Output(_, _) | ComponentType::SwitchedOutput(_, _) => {
+                num_outputs = max(num_outputs, c.numeric_id);
+            }
+            ComponentType::LatencyRam(_, _) => {
+                num_latency_ram = max(num_latency_ram, c.numeric_id);
+            }
+            _ => {}
+        }
+    }
+
+    num_inputs += 1;
+    num_outputs += 1;
+    num_latency_ram += 1;
 
     if DEBUG {
         println!();
@@ -291,11 +299,11 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
         for c in &components {
             match &c.component_type {
                 ComponentType::Input(name, x) => {
-                    let value = input_fn(iteration, c.data_offset);
+                    let value = input_fn(iteration, c.numeric_id);
                     c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, value, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
                 }
                 ComponentType::SwitchedInput(name, x) => {
-                    let value = input_fn(iteration, c.data_offset);
+                    let value = input_fn(iteration, c.numeric_id);
                     let enable = read_wire1(&wires, c.inputs[0].0.unwrap_or(num_wires));
                     if enable {
                         c.outputs[0].0.map(|i| { write_wire(&mut wires, i, *x, value, u64::MAX >> (64 - *x)) }).unwrap_or(Ok(()))?;
@@ -303,20 +311,20 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, data_needed_bytes:
                 }
                 ComponentType::Output(name, x) => {
                     let v = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
-                    tick_outputs[c.data_offset] = Some(v);
+                    tick_outputs[c.numeric_id] = Some(v);
                 }
                 ComponentType::SwitchedOutput(name, x) => {
                     let enable = read_wire1(&wires, c.inputs[0].0.unwrap_or(num_wires));
                     if enable {
                         let v = read_wire(&wires, c.inputs[1].0.unwrap_or(num_wires), *x);
-                        tick_outputs[c.data_offset] = Some(v);
+                        tick_outputs[c.numeric_id] = Some(v);
                     } else {
-                        tick_outputs[c.data_offset] = None;
+                        tick_outputs[c.numeric_id] = None;
                     }
                 }
                 ComponentType::BidirectionalIO(name, x) => {
                     let v = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
-                    tick_outputs[c.data_offset] = Some(v);
+                    tick_outputs[c.numeric_id] = Some(v);
                 }
                 ComponentType::Buffer(x) => {
                     let input = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);

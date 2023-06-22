@@ -19,7 +19,7 @@ fn main() {
         return;
     }
 
-    let (mut components, num_wires, data_bytes_needed) = read_from_save(&args[1]);
+    let (mut components, num_wires, data_bytes_needed, delay) = read_from_save(&args[1]);
 
     for c in components.iter_mut() {
         if DEBUG {
@@ -27,7 +27,13 @@ fn main() {
         }
     }
 
-    let result = simulate(components, num_wires, data_bytes_needed, u64::MAX, true, |_, _| {0}, |_, _| {true});
+    let latency_ram_delay = if delay > 0 {
+        (1024f64 / (delay as f64)).ceil() as u64
+    } else {
+        1024
+    };
+
+    let result = simulate(components, num_wires, latency_ram_delay, data_bytes_needed, u64::MAX, true, |_, _| {0}, |_, _| {true});
     match result {
         Err(error) => {
             println!("{}", error);
@@ -38,7 +44,7 @@ fn main() {
     }
 }
 
-fn read_from_save(path: &str) -> (Vec<Component>, usize, usize) {
+fn read_from_save(path: &str) -> (Vec<Component>, usize, usize, u64) {
     let save = load_save(path);
     let save = save.unwrap();
     if DEBUG {
@@ -86,8 +92,36 @@ fn read_from_save(path: &str) -> (Vec<Component>, usize, usize) {
         offset += s;
     }
 
+    let mut input_index: usize = 0;
+    let mut output_index: usize = 0;
+    let mut latency_index: usize = 0;
+    let mut latency_index_map: HashMap<Point, usize> = HashMap::new();
+
     let components: Vec<Component> = components.into_iter().map(|c| {
         Component {
+            numeric_id: match &c.component_type {
+                Input(_, _) | SwitchedInput(_, _) => {
+                    let i_index = input_index;
+                    input_index += 1;
+                    i_index
+                }
+                Output(_, _) | SwitchedOutput(_, _) | BidirectionalIO(_, _) => {
+                    let o_index = output_index;
+                    output_index += 1;
+                    o_index
+                }
+                LatencyRam(_, _) | VirtualLatencyRam(_, _) => {
+                    if latency_index_map.contains_key(&c.position) {
+                        latency_index_map[&c.position]
+                    } else {
+                        let l_index = latency_index;
+                        latency_index += 1;
+                        latency_index_map.insert(c.position, l_index);
+                        l_index
+                    }
+                }
+                _ => 0
+            },
             component_type: c.component_type,
             inputs: c.inputs.iter().map(|(p, s)| {(map_point_to_wire_index(&wire_clusters, &(p + &c.position)), *s)}).collect(),
             outputs: c.outputs.iter().map(|(p, s, z)| {(map_point_to_wire_index(&wire_clusters, &(p + &c.position)), *s, *z)}).collect(),
@@ -96,7 +130,7 @@ fn read_from_save(path: &str) -> (Vec<Component>, usize, usize) {
         }
     }).collect();
 
-    return (components, wire_clusters.len(), offset);
+    return (components, wire_clusters.len(), offset, save.delay);
 }
 
 fn merge_wires(wire_segments: &Vec<Wire>) -> Vec<HashSet<Point>> {
@@ -1155,13 +1189,19 @@ mod tests {
 
     #[test]
     fn test_byte_adder_naive_ripple() {
-        let (mut components, num_wires, data_bytes_needed) = read_from_save("test/resources/byte_adder/standard-ripple-carry.data");
+        let (mut components, num_wires, data_bytes_needed, delay) = read_from_save("test/resources/byte_adder/standard-ripple-carry.data");
 
         for c in components.iter_mut() {
             if DEBUG {
                 println!("{:?}", c)
             }
         }
+
+        let latency_ram_delay = if delay > 0 {
+            (1024f64 / (delay as f64)).ceil() as u64
+        } else {
+            1024
+        };
 
         let input_function = |tick: u64, input_index: usize| -> u64 {
             match input_index {
@@ -1193,7 +1233,7 @@ mod tests {
         };
 
         let start = Instant::now();
-        let result = simulate(components, num_wires, data_bytes_needed, 1 << 17, false, input_function, output_check_function);
+        let result = simulate(components, num_wires, latency_ram_delay, data_bytes_needed, 1 << 17, false, input_function, output_check_function);
         let end = Instant::now();
         println!("Simulation took {} seconds", (end - start).as_secs_f32());
 
@@ -1211,13 +1251,19 @@ mod tests {
 
     #[test]
     fn test_byte_adder_64_20() {
-        let (mut components, num_wires, data_bytes_needed) = read_from_save("test/resources/byte_adder/decomposed-ripple-switch-carry.data");
+        let (mut components, num_wires, data_bytes_needed, delay) = read_from_save("test/resources/byte_adder/decomposed-ripple-switch-carry.data");
 
         for c in components.iter_mut() {
             if DEBUG {
                 println!("{:?}", c)
             }
         }
+
+        let latency_ram_delay = if delay > 0 {
+            (1024f64 / (delay as f64)).ceil() as u64
+        } else {
+            1024
+        };
 
         let input_function = |tick: u64, input_index: usize| -> u64 {
             match input_index {
@@ -1249,7 +1295,7 @@ mod tests {
         };
 
         let start = Instant::now();
-        let result = simulate(components, num_wires, data_bytes_needed, 1 << 17, false, input_function, output_check_function);
+        let result = simulate(components, num_wires, latency_ram_delay, data_bytes_needed, 1 << 17, false, input_function, output_check_function);
         let end = Instant::now();
         println!("Simulation took {} seconds", (end - start).as_secs_f32());
 
@@ -1267,13 +1313,19 @@ mod tests {
 
     #[test]
     fn test_5bit_decoder() {
-        let (mut components, num_wires, data_bytes_needed) = read_from_save("test/resources/5-bit-decoder.data");
+        let (mut components, num_wires, data_bytes_needed, delay) = read_from_save("test/resources/5-bit-decoder.data");
 
         for c in components.iter_mut() {
             if DEBUG {
                 println!("{:?}", c)
             }
         }
+
+        let latency_ram_delay = if delay > 0 {
+            (1024f64 / (delay as f64)).ceil() as u64
+        } else {
+            1024
+        };
 
         let input_function = |tick: u64, input_index: usize| -> u64 {
             match input_index {
@@ -1298,7 +1350,7 @@ mod tests {
             expected_output == actual_output.unwrap_or(u64::MAX)
         };
 
-        let result = simulate(components, num_wires, data_bytes_needed, 64, false, input_function, output_check_function);
+        let result = simulate(components, num_wires, latency_ram_delay, data_bytes_needed, 64, false, input_function, output_check_function);
         match result {
             Err(error) => {
                 assert!(false);
