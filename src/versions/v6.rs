@@ -83,8 +83,8 @@ fn get_component(input: &[u8], i: &mut usize) -> Option<Component> {
                 }
             }
 
-            Some(programs)
-        }?
+            programs
+        }
     })
 }
 
