@@ -15,7 +15,7 @@ fn get_vec_points(input: &[u8], i: &mut usize) -> Option<Vec<Point>> {
     let mut index: u64 = 0;
     while index < length {
         result.push(get_point(input, i)?);
-        index += 8;
+        index += 1;
     }
 
     Some(result)
