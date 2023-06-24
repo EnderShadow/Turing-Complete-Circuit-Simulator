@@ -401,43 +401,43 @@ pub struct Component {
     pub custom_displacement: Point,
     pub rotation: u8,
     pub permanent_id: u64,
-    pub custom_string: Box<String>,
+    pub custom_string: String,
     pub custom_id: u64,
     pub setting_1: u64,
     pub setting_2: u64,
-    pub selected_programs: Box<HashMap<u64, String>>,
+    pub selected_programs: HashMap<u64, String>,
     pub ui_order: i16
 }
 
 #[derive(Debug)]
 pub struct Wire {
-    pub points: Box<Vec<Point>>,
+    pub points: Vec<Point>,
     pub wire_type: WireType,
     pub color: u8,
-    pub comment: Box<String>
+    pub comment: String
 }
 
 #[derive(Debug)]
 pub struct SaveFile {
     pub version: u8,
-    pub components: Box<Vec<Component>>,
-    pub wires: Box<Vec<Wire>>,
+    pub components: Vec<Component>,
+    pub wires: Vec<Wire>,
     pub save_id: u64,
     pub hub_id: u32,
-    pub hub_description: Box<String>,
+    pub hub_description: String,
     pub gate: u64,
     pub delay: u64,
     pub menu_visible: bool,
     pub clock_speed: u32,
-    pub dependencies: Box<Vec<u64>>,
-    pub description: Box<String>,
+    pub dependencies: Vec<u64>,
+    pub description: String,
     pub camera_position: Point,
-    pub player_data: Box<Vec<u8>>,
+    pub player_data: Vec<u8>,
     pub synced: SyncState,
     pub campaign_bound: bool
 }
 
-pub fn get_bool(input: &Vec<u8>, i: &mut usize) -> Option<bool> {
+pub fn get_bool(input: &[u8], i: &mut usize) -> Option<bool> {
     if *i + 1 > input.len() {
         None
     } else {
@@ -447,7 +447,7 @@ pub fn get_bool(input: &Vec<u8>, i: &mut usize) -> Option<bool> {
     }
 }
 
-pub fn get_u64(input: &Vec<u8>, i: &mut usize) -> Option<u64> {
+pub fn get_u64(input: &[u8], i: &mut usize) -> Option<u64> {
     if *i + 8 > input.len() {
         None
     } else {
@@ -457,7 +457,7 @@ pub fn get_u64(input: &Vec<u8>, i: &mut usize) -> Option<u64> {
     }
 }
 
-pub fn get_i64(input: &Vec<u8>, i: &mut usize) -> Option<i64> {
+pub fn get_i64(input: &[u8], i: &mut usize) -> Option<i64> {
     if *i + 8 > input.len() {
         None
     } else {
@@ -467,7 +467,7 @@ pub fn get_i64(input: &Vec<u8>, i: &mut usize) -> Option<i64> {
     }
 }
 
-pub fn get_u32(input: &Vec<u8>, i: &mut usize) -> Option<u32> {
+pub fn get_u32(input: &[u8], i: &mut usize) -> Option<u32> {
     if *i + 4 > input.len() {
         None
     } else {
@@ -477,7 +477,7 @@ pub fn get_u32(input: &Vec<u8>, i: &mut usize) -> Option<u32> {
     }
 }
 
-pub fn get_i32(input: &Vec<u8>, i: &mut usize) -> Option<i32> {
+pub fn get_i32(input: &[u8], i: &mut usize) -> Option<i32> {
     if *i + 4 > input.len() {
         None
     } else {
@@ -487,7 +487,7 @@ pub fn get_i32(input: &Vec<u8>, i: &mut usize) -> Option<i32> {
     }
 }
 
-pub fn get_u16(input: &Vec<u8>, i: &mut usize) -> Option<u16> {
+pub fn get_u16(input: &[u8], i: &mut usize) -> Option<u16> {
     if *i + 2 > input.len() {
         None
     } else {
@@ -497,7 +497,7 @@ pub fn get_u16(input: &Vec<u8>, i: &mut usize) -> Option<u16> {
     }
 }
 
-pub fn get_i16(input: &Vec<u8>, i: &mut usize) -> Option<i16> {
+pub fn get_i16(input: &[u8], i: &mut usize) -> Option<i16> {
     if *i + 2 > input.len() {
         None
     } else {
@@ -507,7 +507,7 @@ pub fn get_i16(input: &Vec<u8>, i: &mut usize) -> Option<i16> {
     }
 }
 
-pub fn get_u8(input: &Vec<u8>, i: &mut usize) -> Option<u8> {
+pub fn get_u8(input: &[u8], i: &mut usize) -> Option<u8> {
     if *i + 1 > input.len() {
         None
     } else {
@@ -517,7 +517,7 @@ pub fn get_u8(input: &Vec<u8>, i: &mut usize) -> Option<u8> {
     }
 }
 
-pub fn get_i8(input: &Vec<u8>, i: &mut usize) -> Option<i8> {
+pub fn get_i8(input: &[u8], i: &mut usize) -> Option<i8> {
     if *i + 1 > input.len() {
         None
     } else {
@@ -527,19 +527,19 @@ pub fn get_i8(input: &Vec<u8>, i: &mut usize) -> Option<i8> {
     }
 }
 
-pub fn get_sync_state(input: &Vec<u8>, i: &mut usize) -> Option<SyncState> {
+pub fn get_sync_state(input: &[u8], i: &mut usize) -> Option<SyncState> {
     let result = get_u8(input, i)? as usize;
-    return SyncState::from_ordinal(result)
+    SyncState::from_ordinal(result)
 }
 
-pub fn get_point(input: &Vec<u8>, i: &mut usize) -> Option<Point> {
+pub fn get_point(input: &[u8], i: &mut usize) -> Option<Point> {
     let x = get_i16(input, i)?;
     let y = get_i16(input, i)?;
     Some(Point {x, y})
 }
 
-pub fn get_vec_u8(input: &Vec<u8>, i: &mut usize, index_size_is_32_bit: bool) -> Option<Box<Vec<u8>>> {
-    let mut result: Box<Vec<u8>> = Box::new(Vec::new());
+pub fn get_vec_u8(input: &[u8], i: &mut usize, index_size_is_32_bit: bool) -> Option<Vec<u8>> {
+    let mut result: Vec<u8> = Vec::new();
     let length = if index_size_is_32_bit {
         get_u32(input, i)?
     } else {
@@ -555,8 +555,8 @@ pub fn get_vec_u8(input: &Vec<u8>, i: &mut usize, index_size_is_32_bit: bool) ->
     Some(result)
 }
 
-pub fn get_vec_u64(input: &Vec<u8>, i: &mut usize) -> Option<Box<Vec<u64>>> {
-    let mut result: Box<Vec<u64>> = Box::new(Vec::new());
+pub fn get_vec_u64(input: &[u8], i: &mut usize) -> Option<Vec<u64>> {
+    let mut result: Vec<u64> = Vec::new();
     let length = get_u16(input, i)?;
 
     let mut index: u16 = 0;
@@ -568,13 +568,13 @@ pub fn get_vec_u64(input: &Vec<u8>, i: &mut usize) -> Option<Box<Vec<u64>>> {
     Some(result)
 }
 
-pub fn get_string(input: &Vec<u8>, i: &mut usize) -> Option<Box<String>> {
+pub fn get_string(input: &[u8], i: &mut usize) -> Option<String> {
     let length = get_u16(input, i)? as usize;
 
     if *i + length > input.len() {
         None
     } else {
-        let result: Box<String> = Box::new(String::from_utf8(input[*i..(*i + length)].to_vec()).ok()?);
+        let result: String = String::from_utf8(input[*i..(*i + length)].to_vec()).ok()?;
         *i += length;
 
         Some(result)
@@ -582,17 +582,17 @@ pub fn get_string(input: &Vec<u8>, i: &mut usize) -> Option<Box<String>> {
 }
 
 pub fn load_save(file_path: &str) -> Result<SaveFile, String> {
-    let data = fs::read(file_path).expect(&format!("Failed to load file: {}", file_path));
+    let data = fs::read(file_path).unwrap_or_else(|_| panic!("Failed to load file: {}", file_path));
     let mut i: usize = 0;
     let version = get_u8(&data, &mut i).ok_or("Failed to get save version")?;
     match version {
-        0 => v0::parse(&data, &mut i).ok_or("Failed to parse save file version 0".to_string()),
-        1 => v1::parse(&data, &mut i).ok_or("Failed to parse save file version 1".to_string()),
-        2 => v2::parse(&data, &mut i).ok_or("Failed to parse save file version 2".to_string()),
-        3 => v3::parse(&data, &mut i).ok_or("Failed to parse save file version 3".to_string()),
-        4 => v4::parse(&data, &mut i).ok_or("Failed to parse save file version 4".to_string()),
-        5 => v5::parse(&data, &mut i).ok_or("Failed to parse save file version 5".to_string()),
-        6 => v6::parse(&data, &mut i).ok_or("Failed to parse save file version 6".to_string()),
-        _ => Err("Unknown save version".to_string())
-    }
+        0 => v0::parse(&data, &mut i),
+        1 => v1::parse(&data, &mut i),
+        2 => v2::parse(&data, &mut i),
+        3 => v3::parse(&data, &mut i),
+        4 => v4::parse(&data, &mut i),
+        5 => v5::parse(&data, &mut i),
+        6 => v6::parse(&data, &mut i),
+        _ => None
+    }.ok_or_else(|| format!("Failed to parse save file version {version}"))
 }

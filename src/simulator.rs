@@ -1,5 +1,5 @@
-use std::cmp::{max, Ordering};
-use std::collections::{HashMap, HashSet};
+use std::cmp::max;
+use std::collections::HashSet;
 use std::ops::Not;
 use std::rc::Rc;
 use crate::DEBUG;
@@ -89,7 +89,7 @@ pub enum ComponentType {
 
 impl ComponentType {
     pub fn has_virtual(&self) -> bool {
-        match self {
+        matches!(self,
             ComponentType::DelayLine(_) | ComponentType::VirtualDelayLine(_) |
             ComponentType::Register(_) | ComponentType::VirtualRegister(_) |
             ComponentType::Counter(_, _) | ComponentType::VirtualCounter(_, _) |
@@ -98,11 +98,8 @@ impl ComponentType {
             ComponentType::LatencyRam(_, _) | ComponentType::VirtualLatencyRam(_, _) |
             ComponentType::DualLoadRam(_, _) | ComponentType::VirtualDualLoadRam(_, _) | ComponentType::VirtualDualLoadRam2(_, _) |
             ComponentType::Rom(_, _) | ComponentType::VirtualRom(_, _) |
-            ComponentType::HDD(_) | ComponentType::VirtualHDD(_) => {
-                true
-            }
-            _ => false
-        }
+            ComponentType::HDD(_) | ComponentType::VirtualHDD(_)
+        )
     }
 }
 
@@ -179,10 +176,10 @@ fn remove_matching<T>(vec: &mut Vec<T>, p: impl Fn(&T) -> bool) -> Vec<T> {
     }
     removed.reverse();
 
-    return removed;
+    removed
 }
 
-fn dag_sort(mut remaining_components: Vec<Component>, num_wires: usize) -> Result<Vec<Component>, String> {
+fn dag_sort(mut remaining_components: Vec<Component>) -> Result<Vec<Component>, String> {
     let mut sorted = remove_matching(&mut remaining_components, |c| {
         c.inputs.is_empty()
     });
@@ -225,31 +222,31 @@ fn dag_sort(mut remaining_components: Vec<Component>, num_wires: usize) -> Resul
 
     sorted.extend(process_last);
 
-    return Ok(sorted);
+    Ok(sorted)
 }
 
-fn read_wire(wires: &Vec<(u64, u64)>, index: usize, size: u8) -> u64 {
+fn read_wire(wires: &[(u64, u64)], index: usize, size: u8) -> u64 {
     let (wire, driven) = wires[index];
     wire & driven & (u64::MAX >> (64 - size))
 }
 
-fn read_wire1(wires: &Vec<(u64, u64)>, index: usize) -> bool {
+fn read_wire1(wires: &[(u64, u64)], index: usize) -> bool {
     let (wire, driven) = wires[index];
     (wire & driven) & 1 != 0
 }
 
-fn read_wire8(wires: &Vec<(u64, u64)>, index: usize) -> u8 {
+fn read_wire8(wires: &[(u64, u64)], index: usize) -> u8 {
     let (wire, driven) = wires[index];
     (wire & driven) as u8
 }
 
-fn write_wire(wires: &mut Vec<(u64, u64)>, index: usize, size: u8, new_value: u64, new_driven: u64) -> Result<(), String>{
+fn write_wire(wires: &mut [(u64, u64)], index: usize, size: u8, new_value: u64, new_driven: u64) -> Result<(), String>{
     let (wire, driven) = wires[index];
     let size_mask = u64::MAX >> (64 - size);
     let new_value = new_value & size_mask;
     let new_driven = new_driven & size_mask;
     let conflict_mask = driven & new_driven;
-    return if wire & conflict_mask != new_value & conflict_mask {
+    if wire & conflict_mask != new_value & conflict_mask {
         Err("Value conflict".to_string())
     } else {
         wires[index] = ((wire & driven) | (new_value & new_driven), driven | new_driven);
@@ -259,7 +256,7 @@ fn write_wire(wires: &mut Vec<(u64, u64)>, index: usize, size: u8, new_value: u6
 
 pub fn simulate(components: Vec<Component>, num_wires: usize, latency_ram_tick_delay: u64, data_needed_bytes: usize, tick_limit: u64, print_output: bool, input_fn: impl Fn(u64, usize) -> u64, output_check_fn: impl Fn(u64, &Vec<Option<u64>>) -> bool) -> Result<u64, String> {
     let mut data = vec![0u8; data_needed_bytes];
-    let components = dag_sort(components, num_wires)?;
+    let components = dag_sort(components)?;
 
     let mut num_inputs: usize = 0;
     let mut num_outputs: usize = 0;
@@ -497,7 +494,7 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, latency_ram_tick_d
 
                     c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, result, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
                 }
-                ComponentType::Counter(increment, x) => {
+                ComponentType::Counter(_, x) => {
                     let stored = u64::from_le_bytes(data[c.data_offset..(c.data_offset + 8)].try_into().unwrap());
                     c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, stored, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
                 }
@@ -547,7 +544,7 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, latency_ram_tick_d
 
                     let mut i = 0;
                     while i < 4 {
-                        c.outputs[i].0.map(|x| {write_wire(&mut wires, x, 1, if i == on_idx as usize {1} else {0}, 1)}).unwrap_or(Ok(()))?;
+                        c.outputs[i].0.map(|x| {write_wire(&mut wires, x, 1, (i == on_idx as usize) as u64, 1)}).unwrap_or(Ok(()))?;
                         i += 1;
                     }
                 }
@@ -564,7 +561,7 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, latency_ram_tick_d
 
                     let mut i = 0;
                     while i < 8 {
-                        c.outputs[i].0.map(|x| {write_wire(&mut wires, x, 1, if i == on_idx as usize {1} else {0}, 1)}).unwrap_or(Ok(()))?;
+                        c.outputs[i].0.map(|x| {write_wire(&mut wires, x, 1, (i == on_idx as usize) as u64, 1)}).unwrap_or(Ok(()))?;
                         i += 1;
                     }
                 }
@@ -710,5 +707,5 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, latency_ram_tick_d
         wires.fill((0, 0));
     }
 
-    return Ok(iteration);
+    Ok(iteration)
 }

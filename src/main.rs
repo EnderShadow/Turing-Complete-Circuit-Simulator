@@ -1,11 +1,10 @@
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::env;
 use std::ops::Not;
 use std::rc::Rc;
 use crate::save_loader::{load_save, Wire, Point, Component as SaveComponent, ComponentType};
 use crate::simulator::{Component, IntermediateComponent, simulate};
 use crate::simulator::ComponentType::*;
-use argparse::{ArgumentParser, Store, StoreTrue};
+use argparse::{ArgumentParser, Store};
 
 mod save_loader;
 mod versions;
@@ -63,25 +62,17 @@ fn read_from_save(path: &str) -> (Vec<Component>, usize, usize, u64) {
     let mut required_data = HashMap::<Point, usize>::new();
     for component in &components {
         match component.component_type {
-            DelayLine(size) | VirtualDelayLine(size) | Register(size) | VirtualRegister(size) | Counter(_, size) | VirtualCounter(_, size) => {
-                if !required_data.contains_key(&component.position) {
-                    required_data.insert(component.position, 8);
-                }
+            DelayLine(_) | VirtualDelayLine(_) | Register(_) | VirtualRegister(_) | Counter(_, _) | VirtualCounter(_, _) => {
+                required_data.entry(component.position).or_insert(8);
             }
             BitMemory | VirtualBitMemory => {
-                if !required_data.contains_key(&component.position) {
-                    required_data.insert(component.position, 1);
-                }
+                required_data.entry(component.position).or_insert(1);
             }
             Ram(size, _) | VirtualRam(size, _) | LatencyRam(size, _) | VirtualLatencyRam(size, _) | DualLoadRam(size, _) | VirtualDualLoadRam(size, _) | VirtualDualLoadRam2(size, _) | Rom(size, _) | VirtualRom(size, _) => {
-                if !required_data.contains_key(&component.position) {
-                    required_data.insert(component.position, (size as usize + 31) & 31usize.not());
-                }
+                required_data.entry(component.position).or_insert((size as usize + 31) & 31usize.not());
             }
             HDD(size) | VirtualHDD(size) => {
-                if !required_data.contains_key(&component.position) {
-                    required_data.insert(component.position, (size as usize) << 3);
-                }
+                required_data.entry(component.position).or_insert((size as usize) << 3);
             }
             _ => {}
         }
@@ -115,13 +106,13 @@ fn read_from_save(path: &str) -> (Vec<Component>, usize, usize, u64) {
                     o_index
                 }
                 LatencyRam(_, _) | VirtualLatencyRam(_, _) => {
-                    if latency_index_map.contains_key(&c.position) {
-                        latency_index_map[&c.position]
-                    } else {
+                    if let std::collections::hash_map::Entry::Vacant(e) = latency_index_map.entry(c.position) {
                         let l_index = latency_index;
                         latency_index += 1;
-                        latency_index_map.insert(c.position, l_index);
+                        e.insert(l_index);
                         l_index
+                    } else {
+                        latency_index_map[&c.position]
                     }
                 }
                 _ => 0
@@ -134,7 +125,7 @@ fn read_from_save(path: &str) -> (Vec<Component>, usize, usize, u64) {
         }
     }).collect();
 
-    return (components, wire_clusters.len(), offset, save.delay);
+    (components, wire_clusters.len(), offset, save.delay)
 }
 
 fn merge_wires(wire_segments: &Vec<Wire>) -> Vec<HashSet<Point>> {
@@ -181,19 +172,19 @@ fn merge_wires(wire_segments: &Vec<Wire>) -> Vec<HashSet<Point>> {
         }
     }
 
-    return wire_clusters.into();
+    wire_clusters.into()
 }
 
-fn map_point_to_wire_index(wire_clusters: &Vec<HashSet<Point>>, point: &Point) -> Option<usize> {
+fn map_point_to_wire_index(wire_clusters: &[HashSet<Point>], point: &Point) -> Option<usize> {
     for (i, cluster) in wire_clusters.iter().enumerate() {
         if cluster.contains(point) {
             return Some(i);
         }
     }
-    return None;
+    None
 }
 
-fn resolve_components(save_components: &Vec<SaveComponent>, dependencies: &Vec<u64>) -> Vec<IntermediateComponent> {
+fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -> Vec<IntermediateComponent> {
     let mut components: Vec<IntermediateComponent> = Vec::new();
 
     save_components.iter().for_each(|c| {
@@ -762,7 +753,7 @@ fn resolve_components(save_components: &Vec<SaveComponent>, dependencies: &Vec<u
             ComponentType::LevelGate => {panic!("Not Implemented")}
             ComponentType::Input1 => {
                 IntermediateComponent {
-                    component_type: Input(*c.custom_string.clone(), 1),
+                    component_type: Input(c.custom_string.clone(), 1),
                     position: c.position,
                     inputs: Vec::new(),
                     outputs: vec![(Point {x: 1, y: 0}, 1, false)],
@@ -775,7 +766,7 @@ fn resolve_components(save_components: &Vec<SaveComponent>, dependencies: &Vec<u
             ComponentType::LevelInputConditions => {panic!("Not Implemented")}
             ComponentType::Input8 => {
                 IntermediateComponent {
-                    component_type: Input(*c.custom_string.clone(), 8),
+                    component_type: Input(c.custom_string.clone(), 8),
                     position: c.position,
                     inputs: Vec::new(),
                     outputs: vec![(Point {x: 1, y: 0}, 8, false)],
@@ -787,7 +778,7 @@ fn resolve_components(save_components: &Vec<SaveComponent>, dependencies: &Vec<u
             ComponentType::LevelInputArch => {panic!("Not Implemented")}
             ComponentType::Output1 => {
                 IntermediateComponent {
-                    component_type: Output(Rc::from(*c.custom_string.clone()), 1),
+                    component_type: Output(Rc::from(c.custom_string.clone()), 1),
                     position: c.position,
                     inputs: vec![(Point {x: -1, y: 0}, 1)],
                     outputs: Vec::new(),
@@ -797,7 +788,7 @@ fn resolve_components(save_components: &Vec<SaveComponent>, dependencies: &Vec<u
             ComponentType::LevelOutput1Sum => {panic!("Not Implemented")}
             ComponentType::LevelOutput1Car => {
                 IntermediateComponent {
-                    component_type: Output(Rc::from(*c.custom_string.clone()), 1),
+                    component_type: Output(Rc::from(c.custom_string.clone()), 1),
                     position: c.position,
                     inputs: vec![(Point {x: -1, y: 0}, 1)],
                     outputs: Vec::new(),
@@ -811,7 +802,7 @@ fn resolve_components(save_components: &Vec<SaveComponent>, dependencies: &Vec<u
             ComponentType::LevelOutput4Pin => {panic!("Not Implemented")}
             ComponentType::Output8 => {
                 IntermediateComponent {
-                    component_type: Output(Rc::from(*c.custom_string.clone()), 8),
+                    component_type: Output(Rc::from(c.custom_string.clone()), 8),
                     position: c.position,
                     inputs: vec![(Point {x: -1, y: 0}, 8)],
                     outputs: Vec::new(),
@@ -820,7 +811,7 @@ fn resolve_components(save_components: &Vec<SaveComponent>, dependencies: &Vec<u
             }
             ComponentType::Output64 => {
                 IntermediateComponent {
-                    component_type: Output(Rc::from(*c.custom_string.clone()), 64),
+                    component_type: Output(Rc::from(c.custom_string.clone()), 64),
                     position: c.position,
                     inputs: vec![(Point {x: -3, y: 0}, 64)],
                     outputs: Vec::new(),
@@ -901,7 +892,7 @@ fn resolve_components(save_components: &Vec<SaveComponent>, dependencies: &Vec<u
             ComponentType::Input32 => {panic!("Not Implemented")}
             ComponentType::Output16 => {
                 IntermediateComponent {
-                    component_type: Output(Rc::from(*c.custom_string.clone()), 16),
+                    component_type: Output(Rc::from(c.custom_string.clone()), 16),
                     position: c.position,
                     inputs: vec![(Point {x: -2, y: 0}, 16)],
                     outputs: Vec::new(),
@@ -910,7 +901,7 @@ fn resolve_components(save_components: &Vec<SaveComponent>, dependencies: &Vec<u
             }
             ComponentType::Output32 => {
                 IntermediateComponent {
-                    component_type: Output(Rc::from(*c.custom_string.clone()), 32),
+                    component_type: Output(Rc::from(c.custom_string.clone()), 32),
                     position: c.position,
                     inputs: vec![(Point {x: -2, y: 0}, 32)],
                     outputs: Vec::new(),
@@ -1085,7 +1076,7 @@ fn resolve_components(save_components: &Vec<SaveComponent>, dependencies: &Vec<u
             ComponentType::Clock => {panic!("Not Implemented")}
             ComponentType::LevelInput1 => {
                 IntermediateComponent {
-                    component_type: Input(*c.custom_string.clone(), 1),
+                    component_type: Input(c.custom_string.clone(), 1),
                     position: c.position,
                     inputs: Vec::new(),
                     outputs: vec![(Point {x: 1, y: 0}, 1, false)],
@@ -1094,7 +1085,7 @@ fn resolve_components(save_components: &Vec<SaveComponent>, dependencies: &Vec<u
             }
             ComponentType::LevelInput8 => {
                 IntermediateComponent {
-                    component_type: Input(*c.custom_string.clone(), 8),
+                    component_type: Input(c.custom_string.clone(), 8),
                     position: c.position,
                     inputs: Vec::new(),
                     outputs: vec![(Point {x: 1, y: 0}, 8, false)],
@@ -1103,7 +1094,7 @@ fn resolve_components(save_components: &Vec<SaveComponent>, dependencies: &Vec<u
             }
             ComponentType::LevelOutput1 => {
                 IntermediateComponent {
-                    component_type: Output(Rc::from(*c.custom_string.clone()), 1),
+                    component_type: Output(Rc::from(c.custom_string.clone()), 1),
                     position: c.position,
                     inputs: vec![(Point {x: -1, y: 0}, 1)],
                     outputs: Vec::new(),
@@ -1112,7 +1103,7 @@ fn resolve_components(save_components: &Vec<SaveComponent>, dependencies: &Vec<u
             }
             ComponentType::LevelOutput8 => {
                 IntermediateComponent {
-                    component_type: Output(Rc::from(*c.custom_string.clone()), 8),
+                    component_type: Output(Rc::from(c.custom_string.clone()), 8),
                     position: c.position,
                     inputs: vec![(Point {x: -1, y: 0}, 8)],
                     outputs: Vec::new(),
