@@ -320,7 +320,7 @@ pub static LEVEL_OUTPUTS: Lazy<HashSet<ComponentType>> = Lazy::new(|| HashSet::f
 pub static LATCHES: Lazy<HashSet<ComponentType>> = Lazy::new(|| HashSet::from([ComponentType::AndOrLatch, ComponentType::NandNandLatch, ComponentType::NorNorLatch]));
 pub static DELETED_KINDS: Lazy<HashSet<ComponentType>> = Lazy::new(|| HashSet::from([ComponentType::Deleted0, ComponentType::Deleted1, ComponentType::Deleted2, ComponentType::Deleted3, ComponentType::Deleted4, ComponentType::Deleted5, ComponentType::Deleted6, ComponentType::Deleted7, ComponentType::Deleted8, ComponentType::Deleted9, ComponentType::Deleted10, ComponentType::Deleted11, ComponentType::Deleted12, ComponentType::Deleted13, ComponentType::Deleted14, ComponentType::Deleted15, ComponentType::Deleted16, ComponentType::Deleted17, ComponentType::Deleted18]));
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Default)]
 pub struct Point {
     pub x: i16,
     pub y: i16
@@ -562,7 +562,7 @@ pub fn get_vec_u64(input: &[u8], i: &mut usize) -> Option<Vec<u64>> {
     let mut index: u16 = 0;
     while index < length {
         result.push(get_u64(input, i)?);
-        index += 8;
+        index += 1;
     }
 
     Some(result)
