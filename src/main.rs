@@ -65,7 +65,7 @@ fn read_from_save(path: &str) -> (Vec<Component>, usize, usize, u64) {
             DelayLine(_) | VirtualDelayLine(_) | Register(_) | VirtualRegister(_) | Counter(_, _) | VirtualCounter(_, _) => {
                 required_data.entry(component.position).or_insert(8);
             }
-            BitMemory | VirtualBitMemory => {
+            BitMemory | VirtualBitMemory | Register8Plus | VirtualRegister8Plus | VirtualRegister8Plus2 => {
                 required_data.entry(component.position).or_insert(1);
             }
             Ram(size, _) | VirtualRam(size, _) | LatencyRam(size, _) | VirtualLatencyRam(size, _) | DualLoadRam(size, _) | VirtualDualLoadRam(size, _) | VirtualDualLoadRam2(size, _) | Rom(size, _) | VirtualRom(size, _) => {
@@ -196,36 +196,36 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                 IntermediateComponent {
                     component_type: Constant(0, 1),
                     position: c.position,
-                    inputs: Vec::new(),
-                    outputs: vec![(Point {x: 1, y: 0}, 1, false)],
-                    bidirectional: Vec::new()
+                    inputs: vec![],
+                    outputs: vec![(Point::new(1, 0), 1, false)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::On => {
                 IntermediateComponent {
                     component_type: Constant(1, 1),
                     position: c.position,
-                    inputs: Vec::new(),
-                    outputs: vec![(Point {x: 1, y: 0}, 1, false)],
-                    bidirectional: Vec::new()
+                    inputs: vec![],
+                    outputs: vec![(Point::new(1, 0), 1, false)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Buffer1 => {
                 IntermediateComponent {
                     component_type: Buffer(1),
                     position: c.position,
-                    inputs: vec![(Point {x: -1, y: 0}, 1)],
-                    outputs: vec![(Point {x: 1, y: 0}, 1, false)],
-                    bidirectional: Vec::new()
+                    inputs: vec![(Point::new(-1, 0), 1)],
+                    outputs: vec![(Point::new(1, 0), 1, false)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Not => {
                 IntermediateComponent {
                     component_type: Not(1),
                     position: c.position,
-                    inputs: vec![(Point {x: -1, y: 0}, 1)],
-                    outputs: vec![(Point {x: 1, y: 0}, 1, false)],
-                    bidirectional: Vec::new()
+                    inputs: vec![(Point::new(-1, 0), 1)],
+                    outputs: vec![(Point::new(1, 0), 1, false)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::And => {
@@ -233,11 +233,11 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                     component_type: And(1),
                     position: c.position,
                     inputs: vec![
-                        (Point {x: -1, y: -1}, 1),
-                        (Point {x: -1, y: 1}, 1)
+                        (Point::new(-1, -1), 1),
+                        (Point::new(-1, 1), 1)
                     ],
-                    outputs: vec![(Point {x: 2, y: 0}, 1, false)],
-                    bidirectional: Vec::new()
+                    outputs: vec![(Point::new(2, 0), 1, false)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::And3 => {
@@ -245,12 +245,12 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                     component_type: And3,
                     position: c.position,
                     inputs: vec![
-                        (Point {x: -1, y: -1}, 1),
-                        (Point {x: -1, y: 0}, 1),
-                        (Point {x: -1, y: 1}, 1)
+                        (Point::new(-1, -1), 1),
+                        (Point::new(-1, 0), 1),
+                        (Point::new(-1, 1), 1)
                     ],
-                    outputs: vec![(Point {x: 2, y: 0}, 1, false)],
-                    bidirectional: Vec::new()
+                    outputs: vec![(Point::new(2, 0), 1, false)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Nand => {
@@ -258,11 +258,11 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                     component_type: Nand(1),
                     position: c.position,
                     inputs: vec![
-                        (Point {x: -1, y: -1}, 1),
-                        (Point {x: -1, y: 1}, 1)
+                        (Point::new(-1, -1), 1),
+                        (Point::new(-1, 1), 1)
                     ],
-                    outputs: vec![(Point {x: 2, y: 0}, 1, false)],
-                    bidirectional: Vec::new()
+                    outputs: vec![(Point::new(2, 0), 1, false)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Or => {
@@ -270,11 +270,11 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                     component_type: Or(1),
                     position: c.position,
                     inputs: vec![
-                        (Point {x: -1, y: -1}, 1),
-                        (Point {x: -1, y: 1}, 1)
+                        (Point::new(-1, -1), 1),
+                        (Point::new(-1, 1), 1)
                     ],
-                    outputs: vec![(Point {x: 2, y: 0}, 1, false)],
-                    bidirectional: Vec::new()
+                    outputs: vec![(Point::new(2, 0), 1, false)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Or3 => {
@@ -282,12 +282,12 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                     component_type: Or3,
                     position: c.position,
                     inputs: vec![
-                        (Point {x: -1, y: -1}, 1),
-                        (Point {x: -1, y: 0}, 1),
-                        (Point {x: -1, y: 1}, 1)
+                        (Point::new(-1, -1), 1),
+                        (Point::new(-1, 0), 1),
+                        (Point::new(-1, 1), 1)
                     ],
-                    outputs: vec![(Point {x: 2, y: 0}, 1, false)],
-                    bidirectional: Vec::new()
+                    outputs: vec![(Point::new(2, 0), 1, false)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Nor => {
@@ -295,11 +295,11 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                     component_type: Nor(1),
                     position: c.position,
                     inputs: vec![
-                        (Point {x: -1, y: -1}, 1),
-                        (Point {x: -1, y: 1}, 1)
+                        (Point::new(-1, -1), 1),
+                        (Point::new(-1, 1), 1)
                     ],
-                    outputs: vec![(Point {x: 2, y: 0}, 1, false)],
-                    bidirectional: Vec::new()
+                    outputs: vec![(Point::new(2, 0), 1, false)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Xor => {
@@ -307,11 +307,11 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                     component_type: Xor(1),
                     position: c.position,
                     inputs: vec![
-                        (Point {x: -1, y: -1}, 1),
-                        (Point {x: -1, y: 1}, 1)
+                        (Point::new(-1, -1), 1),
+                        (Point::new(-1, 1), 1)
                     ],
-                    outputs: vec![(Point {x: 2, y: 0}, 1, false)],
-                    bidirectional: Vec::new()
+                    outputs: vec![(Point::new(2, 0), 1, false)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Xnor => {
@@ -319,80 +319,46 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                     component_type: Xnor(1),
                     position: c.position,
                     inputs: vec![
-                        (Point {x: -1, y: -1}, 1),
-                        (Point {x: -1, y: 1}, 1)
+                        (Point::new(-1, -1), 1),
+                        (Point::new(-1, 1), 1)
                     ],
-                    outputs: vec![(Point {x: 2, y: 0}, 1, false)],
-                    bidirectional: Vec::new()
+                    outputs: vec![(Point::new(2, 0), 1, false)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Counter8 => {
                 IntermediateComponent {
                     component_type: Counter(c.setting_1, 8),
                     position: c.position,
-                    inputs: Vec::new(),
-                    outputs: vec![(Point {x: 1, y: 0}, 8, false)],
-                    bidirectional: Vec::new()
+                    inputs: vec![],
+                    outputs: vec![(Point::new(1, 0), 8, false)],
+                    bidirectional: vec![]
                 }
             }
-            ComponentType::VirtualCounter8 => {
-                IntermediateComponent {
-                    component_type: VirtualCounter(c.setting_1, 8),
-                    position: c.position,
-                    inputs: vec![
-                        (Point {x: -1, y: -1}, 1),
-                        (Point {x: -1, y: 0}, 8)
-                    ],
-                    outputs: Vec::new(),
-                    bidirectional: Vec::new()
-                }
-            }
+            ComponentType::VirtualCounter8 => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::Counter64 => {
                 IntermediateComponent {
                     component_type: Counter(c.setting_1, 64),
                     position: c.position,
-                    inputs: Vec::new(),
-                    outputs: vec![(Point {x: 2, y: 0}, 64, false)],
-                    bidirectional: Vec::new()
+                    inputs: vec![],
+                    outputs: vec![(Point::new(2, 0), 64, false)],
+                    bidirectional: vec![]
                 }
             }
-            ComponentType::VirtualCounter64 => {
-                IntermediateComponent {
-                    component_type: VirtualCounter(c.setting_1, 64),
-                    position: c.position,
-                    inputs: vec![
-                        (Point {x: -3, y: 0}, 1),
-                        (Point {x: -3, y: 1}, 64)
-                    ],
-                    outputs: Vec::new(),
-                    bidirectional: Vec::new()
-                }
-            }
+            ComponentType::VirtualCounter64 => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::Ram8 => {
                 IntermediateComponent {
                     component_type: Ram(256, 8),
                     position: c.position,
                     inputs: vec![
-                        (Point {x: -13, y: -7}, 1),
-                        (Point {x: -13, y: -5}, 8)
+                        (Point::new(-13, -7), 1),
+                        (Point::new(-13, -5), 8)
                     ],
-                    outputs: vec![(Point {x: 13, y: -7}, 8, true)],
-                    bidirectional: Vec::new()
+                    outputs: vec![(Point::new(13, -7), 8, true)],
+                    bidirectional: vec![]
                 }
             }
-            ComponentType::VirtualRam8 => {
-                IntermediateComponent {
-                    component_type: Ram(256, 8),
-                    position: c.position,
-                    inputs: vec![
-                        (Point {x: -13, y: -6}, 1),
-                        (Point {x: -13, y: -5}, 8),
-                        (Point {x: -13, y: -4}, 8)
-                    ],
-                    outputs: Vec::new(),
-                    bidirectional: Vec::new()
-                }
-            }
+            ComponentType::VirtualRam8 => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::Deleted0 => {panic!("Not Implemented")}
             ComponentType::Deleted1 => {panic!("Not Implemented")}
             ComponentType::Deleted17 => {panic!("Not Implemented")}
@@ -401,56 +367,42 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                 IntermediateComponent {
                     component_type: Register(8),
                     position: c.position,
-                    inputs: vec![(Point {x: -1, y: -1}, 1)],
-                    outputs: vec![(Point {x: 1, y: 0}, 8, true)],
-                    bidirectional: Vec::new()
+                    inputs: vec![(Point::new(-1, -1), 1)],
+                    outputs: vec![(Point::new(1, 0), 8, true)],
+                    bidirectional: vec![]
                 }
             }
-            ComponentType::VirtualRegister8 | ComponentType::VirtualRegister8Red => {
+            ComponentType::VirtualRegister8 | ComponentType::VirtualRegister8Red => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
+            ComponentType::Register8RedPlus => {
                 IntermediateComponent {
-                    component_type: Register(8),
+                    component_type: Register8Plus,
                     position: c.position,
-                    inputs: vec![
-                        (Point {x: -1, y: 0}, 1),
-                        (Point {x: -1, y: 1}, 8)
-                    ],
-                    outputs: Vec::new(),
-                    bidirectional: Vec::new()
+                    inputs: vec![(Point::new(-1, -1), 1)],
+                    outputs: vec![(Point::new(1, 0), 8, true)],
+                    bidirectional: vec![]
                 }
             }
-            ComponentType::Register8RedPlus => {panic!("Not Implemented")}
-            ComponentType::VirtualRegister8RedPlus => {panic!("Not Implemented")}
+            ComponentType::VirtualRegister8RedPlus => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::Register64 => {
                 IntermediateComponent {
                     component_type: Register(64),
                     position: c.position,
-                    inputs: vec![(Point {x: -3, y: -1}, 1)],
-                    outputs: vec![(Point {x: 3, y: 0}, 8, true)],
-                    bidirectional: Vec::new()
+                    inputs: vec![(Point::new(-3, -1), 1)],
+                    outputs: vec![(Point::new(3, 0), 8, true)],
+                    bidirectional: vec![]
                 }
             }
-            ComponentType::VirtualRegister64 => {
-                IntermediateComponent {
-                    component_type: Register(64),
-                    position: c.position,
-                    inputs: vec![
-                        (Point {x: -3, y: 0}, 1),
-                        (Point {x: -3, y: 1}, 8)
-                    ],
-                    outputs: Vec::new(),
-                    bidirectional: Vec::new()
-                }
-            }
+            ComponentType::VirtualRegister64 => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::Switch8 => {
                 IntermediateComponent {
                     component_type: Switch(8),
                     position: c.position,
                     inputs: vec![
-                        (Point {x: 0, y: -1}, 1),
-                        (Point {x: -1, y: 0}, 8)
+                        (Point::new(0, -1), 1),
+                        (Point::new(-1, 0), 8)
                     ],
-                    outputs: vec![(Point {x: 1, y: 0}, 8, true)],
-                    bidirectional: Vec::new()
+                    outputs: vec![(Point::new(1, 0), 8, true)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Mux8 => {
@@ -458,24 +410,24 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                     component_type: Mux(8),
                     position: c.position,
                     inputs: vec![
-                        (Point {x: -1, y: -1}, 1),
-                        (Point {x: -1, y: 0}, 8),
-                        (Point {x: -1, y: 1}, 8)
+                        (Point::new(-1, -1), 1),
+                        (Point::new(-1, 0), 8),
+                        (Point::new(-1, 1), 8)
                     ],
-                    outputs: vec![(Point {x: 1, y: 0}, 8, false)],
-                    bidirectional: Vec::new()
+                    outputs: vec![(Point::new(1, 0), 8, false)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Decoder1 => {
                 IntermediateComponent {
                     component_type: Dec1,
                     position: c.position,
-                    inputs: vec![(Point {x: -1, y: 0}, 1)],
+                    inputs: vec![(Point::new(-1, 0), 1)],
                     outputs: vec![
-                        (Point {x: 1, y: 0}, 1, false),
-                        (Point {x: 1, y: 1}, 1, false)
+                        (Point::new(1, 0), 1, false),
+                        (Point::new(1, 1), 1, false)
                     ],
-                    bidirectional: Vec::new()
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Decoder3 => {
@@ -483,40 +435,40 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                     component_type: Dec3,
                     position: c.position,
                     inputs: vec![
-                        (Point {x: -1, y: -3}, 1),
-                        (Point {x: -1, y: -2}, 1),
-                        (Point {x: -1, y: -1}, 1),
-                        (Point {x: 0, y: -4}, 1)
+                        (Point::new(-1, -3), 1),
+                        (Point::new(-1, -2), 1),
+                        (Point::new(-1, -1), 1),
+                        (Point::new(0, -4), 1)
                     ],
                     outputs: vec![
-                        (Point {x: 1, y: -3}, 1, false),
-                        (Point {x: 1, y: -2}, 1, false),
-                        (Point {x: 1, y: -1}, 1, false),
-                        (Point {x: 1, y: 0}, 1, false),
-                        (Point {x: 1, y: 1}, 1, false),
-                        (Point {x: 1, y: 2}, 1, false),
-                        (Point {x: 1, y: 3}, 1, false),
-                        (Point {x: 1, y: 4}, 1, false)
+                        (Point::new(1, -3), 1, false),
+                        (Point::new(1, -2), 1, false),
+                        (Point::new(1, -1), 1, false),
+                        (Point::new(1, 0), 1, false),
+                        (Point::new(1, 1), 1, false),
+                        (Point::new(1, 2), 1, false),
+                        (Point::new(1, 3), 1, false),
+                        (Point::new(1, 4), 1, false)
                     ],
-                    bidirectional: Vec::new()
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Constant8 => {
                 IntermediateComponent {
                     component_type: Constant(c.setting_1, 8),
                     position: c.position,
-                    inputs: Vec::new(),
-                    outputs: vec![(Point {x: 1, y: 0}, 8, false)],
-                    bidirectional: Vec::new()
+                    inputs: vec![],
+                    outputs: vec![(Point::new(1, 0), 8, false)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Not8 => {
                 IntermediateComponent {
                     component_type: Not(8),
                     position: c.position,
-                    inputs: vec![(Point {x: -1, y: 0}, 8)],
-                    outputs: vec![(Point {x: 1, y: 0}, 8, false)],
-                    bidirectional: Vec::new()
+                    inputs: vec![(Point::new(-1, 0), 8)],
+                    outputs: vec![(Point::new(1, 0), 8, false)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Or8 => {
@@ -524,11 +476,11 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                     component_type: Or(8),
                     position: c.position,
                     inputs: vec![
-                        (Point {x: -1, y: -1}, 8),
-                        (Point {x: -1, y: 0}, 8)
+                        (Point::new(-1, -1), 8),
+                        (Point::new(-1, 0), 8)
                     ],
-                    outputs: vec![(Point {x: 1, y: 0}, 8, false)],
-                    bidirectional: Vec::new()
+                    outputs: vec![(Point::new(1, 0), 8, false)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::And8 => {
@@ -536,11 +488,11 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                     component_type: And(8),
                     position: c.position,
                     inputs: vec![
-                        (Point {x: -1, y: -1}, 8),
-                        (Point {x: -1, y: 0}, 8)
+                        (Point::new(-1, -1), 8),
+                        (Point::new(-1, 0), 8)
                     ],
-                    outputs: vec![(Point {x: 1, y: 0}, 8, false)],
-                    bidirectional: Vec::new()
+                    outputs: vec![(Point::new(1, 0), 8, false)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Xor8 => {
@@ -548,11 +500,11 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                     component_type: Xor(8),
                     position: c.position,
                     inputs: vec![
-                        (Point {x: -1, y: -1}, 8),
-                        (Point {x: -1, y: 0}, 8)
+                        (Point::new(-1, -1), 8),
+                        (Point::new(-1, 0), 8)
                     ],
-                    outputs: vec![(Point {x: 1, y: 0}, 8, false)],
-                    bidirectional: Vec::new()
+                    outputs: vec![(Point::new(1, 0), 8, false)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Equal8 => {
@@ -560,11 +512,11 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                     component_type: Equal(8),
                     position: c.position,
                     inputs: vec![
-                        (Point {x: -1, y: -1}, 8),
-                        (Point {x: -1, y: 0}, 8)
+                        (Point::new(-1, -1), 8),
+                        (Point::new(-1, 0), 8)
                     ],
-                    outputs: vec![(Point {x: 1, y: 0}, 1, false)],
-                    bidirectional: Vec::new()
+                    outputs: vec![(Point::new(1, 0), 1, false)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Deleted2 => {panic!("Not Implemented")}
@@ -573,9 +525,9 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                 IntermediateComponent {
                     component_type: Neg(8),
                     position: c.position,
-                    inputs: vec![(Point {x: -1, y: 0}, 8)],
-                    outputs: vec![(Point {x: 1, y: 0}, 8, false)],
-                    bidirectional: Vec::new()
+                    inputs: vec![(Point::new(-1, 0), 8)],
+                    outputs: vec![(Point::new(1, 0), 8, false)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Add8 => {
@@ -583,15 +535,15 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                     component_type: Adder(8),
                     position: c.position,
                     inputs: vec![
-                        (Point {x: -1, y: -1}, 1),
-                        (Point {x: -1, y: 0}, 8),
-                        (Point {x: -1, y: 1}, 8)
+                        (Point::new(-1, -1), 1),
+                        (Point::new(-1, 0), 8),
+                        (Point::new(-1, 1), 8)
                     ],
                     outputs: vec![
-                        (Point {x: 1, y: -1}, 8, false),
-                        (Point {x: 1, y: 0}, 1, false)
+                        (Point::new(1, -1), 8, false),
+                        (Point::new(1, 0), 1, false)
                     ],
-                    bidirectional: Vec::new()
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Mul8 => {
@@ -599,32 +551,32 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                     component_type: Mul(8),
                     position: c.position,
                     inputs: vec![
-                        (Point {x: -1, y: -1}, 8),
-                        (Point {x: -1, y: 0}, 8)
+                        (Point::new(-1, -1), 8),
+                        (Point::new(-1, 0), 8)
                     ],
                     outputs: vec![
-                        (Point {x: 1, y: -1}, 8, false),
-                        (Point {x: 1, y: 0}, 8, false)
+                        (Point::new(1, -1), 8, false),
+                        (Point::new(1, 0), 8, false)
                     ],
-                    bidirectional: Vec::new()
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Splitter8 => {
                 IntermediateComponent {
                     component_type: ByteSplitter,
                     position: c.position,
-                    inputs: vec![(Point {x: -1, y: 0}, 8)],
+                    inputs: vec![(Point::new(-1, 0), 8)],
                     outputs: vec![
-                        (Point {x: 1, y: -3}, 1, false),
-                        (Point {x: 1, y: -2}, 1, false),
-                        (Point {x: 1, y: -1}, 1, false),
-                        (Point {x: 1, y: 0}, 1, false),
-                        (Point {x: 1, y: 1}, 1, false),
-                        (Point {x: 1, y: 2}, 1, false),
-                        (Point {x: 1, y: 3}, 1, false),
-                        (Point {x: 1, y: 4}, 1, false)
+                        (Point::new(1, -3), 1, false),
+                        (Point::new(1, -2), 1, false),
+                        (Point::new(1, -1), 1, false),
+                        (Point::new(1, 0), 1, false),
+                        (Point::new(1, 1), 1, false),
+                        (Point::new(1, 2), 1, false),
+                        (Point::new(1, 3), 1, false),
+                        (Point::new(1, 4), 1, false)
                     ],
-                    bidirectional: Vec::new()
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Maker8 => {
@@ -632,35 +584,35 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                     component_type: ByteMaker,
                     position: c.position,
                     inputs: vec![
-                        (Point {x: -1, y: -3}, 1),
-                        (Point {x: -1, y: -2}, 1),
-                        (Point {x: -1, y: -1}, 1),
-                        (Point {x: -1, y: 0}, 1),
-                        (Point {x: -1, y: 1}, 1),
-                        (Point {x: -1, y: 2}, 1),
-                        (Point {x: -1, y: 3}, 1),
-                        (Point {x: -1, y: 4}, 1)
+                        (Point::new(-1, -3), 1),
+                        (Point::new(-1, -2), 1),
+                        (Point::new(-1, -1), 1),
+                        (Point::new(-1, 0), 1),
+                        (Point::new(-1, 1), 1),
+                        (Point::new(-1, 2), 1),
+                        (Point::new(-1, 3), 1),
+                        (Point::new(-1, 4), 1)
                     ],
-                    outputs: vec![(Point {x: 1, y: 0}, 8, false)],
-                    bidirectional: Vec::new()
+                    outputs: vec![(Point::new(1, 0), 8, false)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Splitter64 => {
                 IntermediateComponent {
                     component_type: ByteSplitter8,
                     position: c.position,
-                    inputs: vec![(Point {x: -1, y: 0}, 64)],
+                    inputs: vec![(Point::new(-1, 0), 64)],
                     outputs: vec![
-                        (Point {x: 1, y: -3}, 8, false),
-                        (Point {x: 1, y: -2}, 8, false),
-                        (Point {x: 1, y: -1}, 8, false),
-                        (Point {x: 1, y: 0}, 8, false),
-                        (Point {x: 1, y: 1}, 8, false),
-                        (Point {x: 1, y: 2}, 8, false),
-                        (Point {x: 1, y: 3}, 8, false),
-                        (Point {x: 1, y: 4}, 8, false)
+                        (Point::new(1, -3), 8, false),
+                        (Point::new(1, -2), 8, false),
+                        (Point::new(1, -1), 8, false),
+                        (Point::new(1, 0), 8, false),
+                        (Point::new(1, 1), 8, false),
+                        (Point::new(1, 2), 8, false),
+                        (Point::new(1, 3), 8, false),
+                        (Point::new(1, 4), 8, false)
                     ],
-                    bidirectional: Vec::new()
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Maker64 => {
@@ -668,17 +620,17 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                     component_type: ByteMaker8,
                     position: c.position,
                     inputs: vec![
-                        (Point {x: -1, y: -3}, 8),
-                        (Point {x: -1, y: -2}, 8),
-                        (Point {x: -1, y: -1}, 8),
-                        (Point {x: -1, y: 0}, 8),
-                        (Point {x: -1, y: 1}, 8),
-                        (Point {x: -1, y: 2}, 8),
-                        (Point {x: -1, y: 3}, 8),
-                        (Point {x: -1, y: 4}, 8)
+                        (Point::new(-1, -3), 8),
+                        (Point::new(-1, -2), 8),
+                        (Point::new(-1, -1), 8),
+                        (Point::new(-1, 0), 8),
+                        (Point::new(-1, 1), 8),
+                        (Point::new(-1, 2), 8),
+                        (Point::new(-1, 3), 8),
+                        (Point::new(-1, 4), 8)
                     ],
-                    outputs: vec![(Point {x: 1, y: 0}, 64, false)],
-                    bidirectional: Vec::new()
+                    outputs: vec![(Point::new(1, 0), 64, false)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::FullAdder => {
@@ -686,58 +638,67 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                     component_type: Adder(1),
                     position: c.position,
                     inputs: vec![
-                        (Point {x: -1, y: -1}, 1),
-                        (Point {x: -1, y: 0}, 1),
-                        (Point {x: -1, y: 1}, 1)
+                        (Point::new(-1, -1), 1),
+                        (Point::new(-1, 0), 1),
+                        (Point::new(-1, 1), 1)
                     ],
                     outputs: vec![
-                        (Point {x: 1, y: 0}, 1, false),
-                        (Point {x: 1, y: 1}, 1, false)
+                        (Point::new(1, 0), 1, false),
+                        (Point::new(1, 1), 1, false)
                     ],
-                    bidirectional: Vec::new()
+                    bidirectional: vec![]
                 }
             }
             ComponentType::BitMemory => {
                 IntermediateComponent {
                     component_type: BitMemory,
                     position: c.position,
-                    inputs: Vec::new(),
-                    outputs: vec![(Point {x: 1, y: 0}, 1, false)],
-                    bidirectional: Vec::new()
+                    inputs: vec![],
+                    outputs: vec![(Point::new(1, 0), 1, false)],
+                    bidirectional: vec![]
                 }
             }
-            ComponentType::VirtualBitMemory => {
-                IntermediateComponent {
-                    component_type: BitMemory,
-                    position: c.position,
-                    inputs: vec![
-                        (Point {x: -1, y: -1}, 1),
-                        (Point {x: -1, y: 1}, 1)
-                    ],
-                    outputs: Vec::new(),
-                    bidirectional: Vec::new()
-                }
-            }
+            ComponentType::VirtualBitMemory => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::Deleted10 => {panic!("Not Implemented")}
             ComponentType::Decoder2 => {
                 IntermediateComponent {
                     component_type: Dec2,
                     position: c.position,
                     inputs: vec![
-                        (Point {x: -1, y: -1}, 1),
-                        (Point {x: -1, y: 0}, 1)
+                        (Point::new(-1, -1), 1),
+                        (Point::new(-1, 0), 1)
                     ],
                     outputs: vec![
-                        (Point {x: 1, y: -1}, 1, false),
-                        (Point {x: 1, y: 0}, 1, false),
-                        (Point {x: 1, y: 1}, 1, false),
-                        (Point {x: 1, y: 2}, 1, false)
+                        (Point::new(1, -1), 1, false),
+                        (Point::new(1, 0), 1, false),
+                        (Point::new(1, 1), 1, false),
+                        (Point::new(1, 2), 1, false)
                     ],
-                    bidirectional: Vec::new()
+                    bidirectional: vec![]
                 }
             }
-            ComponentType::Timing => {panic!("Not Implemented")}
-            ComponentType::NoteSound => {panic!("Not Implemented")}
+            ComponentType::Timing => {
+                IntermediateComponent {
+                    component_type: Time,
+                    position: c.position,
+                    inputs: vec![(Point::new(0, -1), 1)],
+                    outputs: vec![(Point::new(1, 0), 64, true)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::NoteSound => {
+                IntermediateComponent {
+                    component_type: Sound,
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 8),
+                        (Point::new(-2, 0), 8),
+                        (Point::new(-2, 1), 8)
+                    ],
+                    outputs: vec![],
+                    bidirectional: vec![]
+                }
+            }
             ComponentType::Deleted4 => {panic!("Not Implemented")}
             ComponentType::Deleted5 => {panic!("Not Implemented")}
             ComponentType::Keyboard => {panic!("Not Implemented")}
@@ -755,9 +716,9 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                 IntermediateComponent {
                     component_type: Input(c.custom_string.clone(), 1),
                     position: c.position,
-                    inputs: Vec::new(),
-                    outputs: vec![(Point {x: 1, y: 0}, 1, false)],
-                    bidirectional: Vec::new()
+                    inputs: vec![],
+                    outputs: vec![(Point::new(1, 0), 1, false)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::LevelInput2Pin => {panic!("Not Implemented")}
@@ -768,9 +729,9 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                 IntermediateComponent {
                     component_type: Input(c.custom_string.clone(), 8),
                     position: c.position,
-                    inputs: Vec::new(),
-                    outputs: vec![(Point {x: 1, y: 0}, 8, false)],
-                    bidirectional: Vec::new()
+                    inputs: vec![],
+                    outputs: vec![(Point::new(1, 0), 8, false)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Input64 => {panic!("Not Implemented")}
@@ -780,9 +741,9 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                 IntermediateComponent {
                     component_type: Output(Rc::from(c.custom_string.clone()), 1),
                     position: c.position,
-                    inputs: vec![(Point {x: -1, y: 0}, 1)],
-                    outputs: Vec::new(),
-                    bidirectional: Vec::new()
+                    inputs: vec![(Point::new(-1, 0), 1)],
+                    outputs: vec![],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::LevelOutput1Sum => {panic!("Not Implemented")}
@@ -790,9 +751,9 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                 IntermediateComponent {
                     component_type: Output(Rc::from(c.custom_string.clone()), 1),
                     position: c.position,
-                    inputs: vec![(Point {x: -1, y: 0}, 1)],
-                    outputs: Vec::new(),
-                    bidirectional: Vec::new()
+                    inputs: vec![(Point::new(-1, 0), 1)],
+                    outputs: vec![],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Deleted8 => {panic!("Not Implemented")}
@@ -804,36 +765,36 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                 IntermediateComponent {
                     component_type: Output(Rc::from(c.custom_string.clone()), 8),
                     position: c.position,
-                    inputs: vec![(Point {x: -1, y: 0}, 8)],
-                    outputs: Vec::new(),
-                    bidirectional: Vec::new()
+                    inputs: vec![(Point::new(-1, 0), 8)],
+                    outputs: vec![],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Output64 => {
                 IntermediateComponent {
                     component_type: Output(Rc::from(c.custom_string.clone()), 64),
                     position: c.position,
-                    inputs: vec![(Point {x: -3, y: 0}, 64)],
-                    outputs: Vec::new(),
-                    bidirectional: Vec::new()
+                    inputs: vec![(Point::new(-3, 0), 64)],
+                    outputs: vec![],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::LevelOutputArch => {panic!("Not Implemented")}
             ComponentType::LevelOutputCounter => {panic!("Not Implemented")}
             ComponentType::Deleted11 => {panic!("Not Implemented")}
             ComponentType::Custom => {panic!("Not Implemented")}
-            ComponentType::VirtualCustom => {panic!("Not Implemented")}
+            ComponentType::VirtualCustom => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::Program => {panic!("Not Implemented")}
             ComponentType::DelayLine1 => {
                 IntermediateComponent {
                     component_type: DelayLine(1),
                     position: c.position,
-                    inputs: Vec::new(),
-                    outputs: vec![(Point {x: 1, y: 0}, 1, false)],
-                    bidirectional: Vec::new()
+                    inputs: vec![],
+                    outputs: vec![(Point::new(1, 0), 1, false)],
+                    bidirectional: vec![]
                 }
             }
-            ComponentType::VirtualDelayLine1 => {panic!("Not Implemented")}
+            ComponentType::VirtualDelayLine1 => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::Console => {panic!("Not Implemented")}
             ComponentType::Shl8 => {panic!("Not Implemented")}
             ComponentType::Shr8 => {panic!("Not Implemented")}
@@ -856,29 +817,29 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                     component_type: Switch(64),
                     position: c.position,
                     inputs: vec![
-                        (Point {x: 0, y: -1}, 1),
-                        (Point {x: -1, y: 0}, 64)
+                        (Point::new(0, -1), 1),
+                        (Point::new(-1, 0), 64)
                     ],
-                    outputs: vec![(Point {x: 1, y: 0}, 64, true)],
-                    bidirectional: Vec::new()
+                    outputs: vec![(Point::new(1, 0), 64, true)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::ProbeMemoryBit => {
                 IntermediateComponent {
                     component_type: MemoryProbe(1),
                     position: c.position,
-                    inputs: vec![(Point {x: -1, y: 0}, 1)],
-                    outputs: Vec::new(),
-                    bidirectional: Vec::new()
+                    inputs: vec![(Point::new(-1, 0), 1)],
+                    outputs: vec![],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::ProbeMemoryWord => {
                 IntermediateComponent {
                     component_type: MemoryProbe(64),
                     position: c.position,
-                    inputs: vec![(Point {x: -1, y: 0}, 1)],
-                    outputs: Vec::new(),
-                    bidirectional: Vec::new()
+                    inputs: vec![(Point::new(-1, 0), 1)],
+                    outputs: vec![],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::AndOrLatch => {panic!("Not Implemented")}
@@ -894,18 +855,18 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                 IntermediateComponent {
                     component_type: Output(Rc::from(c.custom_string.clone()), 16),
                     position: c.position,
-                    inputs: vec![(Point {x: -2, y: 0}, 16)],
-                    outputs: Vec::new(),
-                    bidirectional: Vec::new()
+                    inputs: vec![(Point::new(-2, 0), 16)],
+                    outputs: vec![],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Output32 => {
                 IntermediateComponent {
                     component_type: Output(Rc::from(c.custom_string.clone()), 32),
                     position: c.position,
-                    inputs: vec![(Point {x: -2, y: 0}, 32)],
-                    outputs: Vec::new(),
-                    bidirectional: Vec::new()
+                    inputs: vec![(Point::new(-2, 0), 32)],
+                    outputs: vec![],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Deleted12 => {panic!("Not Implemented")}
@@ -924,11 +885,11 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                     component_type: Switch(1),
                     position: c.position,
                     inputs: vec![
-                        (Point {x: 0, y: -1}, 1),
-                        (Point {x: -1, y: 0}, 1)
+                        (Point::new(0, -1), 1),
+                        (Point::new(-1, 0), 1)
                     ],
-                    outputs: vec![(Point {x: 1, y: 0}, 1, true)],
-                    bidirectional: Vec::new()
+                    outputs: vec![(Point::new(1, 0), 1, true)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Output1z => {panic!("Not Implemented")}
@@ -955,19 +916,19 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                     component_type: Switch(16),
                     position: c.position,
                     inputs: vec![
-                        (Point {x: 0, y: -1}, 1),
-                        (Point {x: -1, y: 0}, 16)
+                        (Point::new(0, -1), 1),
+                        (Point::new(-1, 0), 16)
                     ],
-                    outputs: vec![(Point {x: 1, y: 0}, 16, true)],
-                    bidirectional: Vec::new()
+                    outputs: vec![(Point::new(1, 0), 16, true)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Splitter16 => {panic!("Not Implemented")}
             ComponentType::Maker16 => {panic!("Not Implemented")}
             ComponentType::Register16 => {panic!("Not Implemented")}
-            ComponentType::VirtualRegister16 => {panic!("Not Implemented")}
+            ComponentType::VirtualRegister16 => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::Counter16 => {panic!("Not Implemented")}
-            ComponentType::VirtualCounter16 => {panic!("Not Implemented")}
+            ComponentType::VirtualCounter16 => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::Constant32 => {panic!("Not Implemented")}
             ComponentType::Not32 => {panic!("Not Implemented")}
             ComponentType::Or32 => {panic!("Not Implemented")}
@@ -987,11 +948,11 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                     component_type: Switch(32),
                     position: c.position,
                     inputs: vec![
-                        (Point {x: 0, y: -1}, 1),
-                        (Point {x: -1, y: 0}, 32)
+                        (Point::new(0, -1), 1),
+                        (Point::new(-1, 0), 32)
                     ],
-                    outputs: vec![(Point {x: 1, y: 0}, 32, true)],
-                    bidirectional: Vec::new()
+                    outputs: vec![(Point::new(1, 0), 32, true)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Splitter32 => {panic!("Not Implemented")}
@@ -1000,19 +961,19 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                     component_type: ByteMaker4,
                     position: c.position,
                     inputs: vec![
-                        (Point {x: -1, y: -1}, 8),
-                        (Point {x: -1, y: 0}, 8),
-                        (Point {x: -1, y: 1}, 8),
-                        (Point {x: -1, y: 2}, 8)
+                        (Point::new(-1, -1), 8),
+                        (Point::new(-1, 0), 8),
+                        (Point::new(-1, 1), 8),
+                        (Point::new(-1, 2), 8)
                     ],
-                    outputs: vec![(Point {x: 1, y: 0}, 32, false)],
-                    bidirectional: Vec::new()
+                    outputs: vec![(Point::new(1, 0), 32, false)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Register32 => {panic!("Not Implemented")}
-            ComponentType::VirtualRegister32 => {panic!("Not Implemented")}
+            ComponentType::VirtualRegister32 => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::Counter32 => {panic!("Not Implemented")}
-            ComponentType::VirtualCounter32 => {panic!("Not Implemented")}
+            ComponentType::VirtualCounter32 => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::LevelOutput8z => {panic!("Not Implemented")}
             ComponentType::Nand8 => {panic!("Not Implemented")}
             ComponentType::Nor8 => {panic!("Not Implemented")}
@@ -1027,35 +988,35 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
             ComponentType::Nor64 => {panic!("Not Implemented")}
             ComponentType::Xnor64 => {panic!("Not Implemented")}
             ComponentType::Ram => {panic!("Not Implemented")}
-            ComponentType::VirtualRam => {panic!("Not Implemented")}
+            ComponentType::VirtualRam =>{panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::RamLatency => {panic!("Not Implemented")}
-            ComponentType::VirtualRamLatency => {panic!("Not Implemented")}
+            ComponentType::VirtualRamLatency => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::RamFast => {panic!("Not Implemented")}
-            ComponentType::VirtualRamFast => {panic!("Not Implemented")}
+            ComponentType::VirtualRamFast => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::Rom => {panic!("Not Implemented")}
-            ComponentType::VirtualRom => {panic!("Not Implemented")}
+            ComponentType::VirtualRom => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::SolutionRom => {panic!("Not Implemented")}
-            ComponentType::VirtualSolutionRom => {panic!("Not Implemented")}
+            ComponentType::VirtualSolutionRom => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::DelayLine8 => {
                 IntermediateComponent {
                     component_type: DelayLine(8),
                     position: c.position,
-                    inputs: Vec::new(),
-                    outputs: vec![(Point {x: 1, y: 0}, 8, false)],
-                    bidirectional: Vec::new()
+                    inputs: vec![],
+                    outputs: vec![(Point::new(1, 0), 8, false)],
+                    bidirectional: vec![]
                 }
             }
-            ComponentType::VirtualDelayLine8 => {panic!("Not Implemented")}
+            ComponentType::VirtualDelayLine8 => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::DelayLine16 => {panic!("Not Implemented")}
-            ComponentType::VirtualDelayLine16 => {panic!("Not Implemented")}
+            ComponentType::VirtualDelayLine16 => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::DelayLine32 => {panic!("Not Implemented")}
-            ComponentType::VirtualDelayLine32 => {panic!("Not Implemented")}
+            ComponentType::VirtualDelayLine32 => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::DelayLine64 => {panic!("Not Implemented")}
-            ComponentType::VirtualDelayLine64 => {panic!("Not Implemented")}
+            ComponentType::VirtualDelayLine64 => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::RamDualLoad => {panic!("Not Implemented")}
-            ComponentType::VirtualRamDualLoad => {panic!("Not Implemented")}
+            ComponentType::VirtualRamDualLoad => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::Hdd => {panic!("Not Implemented")}
-            ComponentType::VirtualHdd => {panic!("Not Implemented")}
+            ComponentType::VirtualHdd => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::Network => {panic!("Not Implemented")}
             ComponentType::Rol8 => {panic!("Not Implemented")}
             ComponentType::Rol16 => {panic!("Not Implemented")}
@@ -1078,36 +1039,36 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                 IntermediateComponent {
                     component_type: Input(c.custom_string.clone(), 1),
                     position: c.position,
-                    inputs: Vec::new(),
-                    outputs: vec![(Point {x: 1, y: 0}, 1, false)],
-                    bidirectional: Vec::new()
+                    inputs: vec![],
+                    outputs: vec![(Point::new(1, 0), 1, false)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::LevelInput8 => {
                 IntermediateComponent {
                     component_type: Input(c.custom_string.clone(), 8),
                     position: c.position,
-                    inputs: Vec::new(),
-                    outputs: vec![(Point {x: 1, y: 0}, 8, false)],
-                    bidirectional: Vec::new()
+                    inputs: vec![],
+                    outputs: vec![(Point::new(1, 0), 8, false)],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::LevelOutput1 => {
                 IntermediateComponent {
                     component_type: Output(Rc::from(c.custom_string.clone()), 1),
                     position: c.position,
-                    inputs: vec![(Point {x: -1, y: 0}, 1)],
-                    outputs: Vec::new(),
-                    bidirectional: Vec::new()
+                    inputs: vec![(Point::new(-1, 0), 1)],
+                    outputs: vec![],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::LevelOutput8 => {
                 IntermediateComponent {
                     component_type: Output(Rc::from(c.custom_string.clone()), 8),
                     position: c.position,
-                    inputs: vec![(Point {x: -1, y: 0}, 8)],
-                    outputs: Vec::new(),
-                    bidirectional: Vec::new()
+                    inputs: vec![(Point::new(-1, 0), 8)],
+                    outputs: vec![],
+                    bidirectional: vec![]
                 }
             }
             ComponentType::Ashr8 => {panic!("Not Implemented")}
@@ -1115,15 +1076,15 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
             ComponentType::Ashr32 => {panic!("Not Implemented")}
             ComponentType::Ashr64 => {panic!("Not Implemented")}
             ComponentType::Bidirectional1 => {panic!("Not Implemented")}
-            ComponentType::VirtualBidirectional1 => {panic!("Not Implemented")}
+            ComponentType::VirtualBidirectional1 => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::Bidirectional8 => {panic!("Not Implemented")}
-            ComponentType::VirtualBidirectional8 => {panic!("Not Implemented")}
+            ComponentType::VirtualBidirectional8 => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::Bidirectional16 => {panic!("Not Implemented")}
-            ComponentType::VirtualBidirectional16 => {panic!("Not Implemented")}
+            ComponentType::VirtualBidirectional16 => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::Bidirectional32 => {panic!("Not Implemented")}
-            ComponentType::VirtualBidirectional32 => {panic!("Not Implemented")}
+            ComponentType::VirtualBidirectional32 => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::Bidirectional64 => {panic!("Not Implemented")}
-            ComponentType::VirtualBidirectional64 => {panic!("Not Implemented")}
+            ComponentType::VirtualBidirectional64 => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
         };
 
         if component.component_type.has_virtual() {
@@ -1131,8 +1092,8 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                 DelayLine(size) => {
                     let virtual_component = IntermediateComponent {
                         component_type: VirtualDelayLine(size),
-                        inputs: vec![(Point {x: -1, y: 0}, size)],
-                        outputs: Vec::new(),
+                        inputs: vec![(Point::new(-1, 0), size)],
+                        outputs: vec![],
                         ..component.clone()
                     };
                     components.push(virtual_component.rotate(c.rotation))
@@ -1161,8 +1122,8 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
                 HDD(_) => {
                     panic!("Unimplemented!");
                 }
-                _ => {
-                    panic!("Invalid Virtual Component!");
+                c_type => {
+                    panic!("Unhandled component with virtual components {:?}", c_type);
                 }
             }
         }

@@ -26,6 +26,9 @@ pub enum ComponentType {
     VirtualDelayLine(u8),
     Register(u8),
     VirtualRegister(u8),
+    Register8Plus,
+    VirtualRegister8Plus,
+    VirtualRegister8Plus2,
     Shl(u8),
     Shr(u8),
     Rol(u8),
@@ -90,15 +93,31 @@ pub enum ComponentType {
 impl ComponentType {
     pub fn has_virtual(&self) -> bool {
         matches!(self,
-            ComponentType::DelayLine(_) | ComponentType::VirtualDelayLine(_) |
-            ComponentType::Register(_) | ComponentType::VirtualRegister(_) |
-            ComponentType::Counter(_, _) | ComponentType::VirtualCounter(_, _) |
-            ComponentType::BitMemory | ComponentType::VirtualBitMemory |
-            ComponentType::Ram(_, _) | ComponentType::VirtualRam(_, _) |
-            ComponentType::LatencyRam(_, _) | ComponentType::VirtualLatencyRam(_, _) |
-            ComponentType::DualLoadRam(_, _) | ComponentType::VirtualDualLoadRam(_, _) | ComponentType::VirtualDualLoadRam2(_, _) |
-            ComponentType::Rom(_, _) | ComponentType::VirtualRom(_, _) |
-            ComponentType::HDD(_) | ComponentType::VirtualHDD(_)
+            ComponentType::DelayLine(_) |
+            ComponentType::Register(_) |
+            ComponentType::Register8Plus |
+            ComponentType::Counter(_, _) |
+            ComponentType::BitMemory |
+            ComponentType::Ram(_, _) |
+            ComponentType::LatencyRam(_, _) |
+            ComponentType::DualLoadRam(_, _) |
+            ComponentType::Rom(_, _) |
+            ComponentType::HDD(_)
+        )
+    }
+
+    pub fn is_virtual(&self) -> bool {
+        matches!(self,
+            ComponentType::VirtualDelayLine(_) |
+            ComponentType::VirtualRegister(_) |
+            ComponentType::VirtualRegister8Plus | ComponentType::VirtualRegister8Plus2 |
+            ComponentType::VirtualCounter(_, _) |
+            ComponentType::VirtualBitMemory |
+            ComponentType::VirtualRam(_, _) |
+            ComponentType::VirtualLatencyRam(_, _) |
+            ComponentType::VirtualDualLoadRam(_, _) | ComponentType::VirtualDualLoadRam2(_, _) |
+            ComponentType::VirtualRom(_, _) |
+            ComponentType::VirtualHDD(_)
         )
     }
 }
@@ -386,7 +405,7 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, latency_ram_tick_d
                 ComponentType::VirtualDelayLine(x) => {
                     let new_value = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
                     let to_store = u64::to_le_bytes(new_value);
-                    data[c.data_offset..(c.data_offset + 8)].copy_from_slice(&to_store)
+                    data[c.data_offset..(c.data_offset + 8)].copy_from_slice(&to_store);
                 }
                 ComponentType::Register(x) => {
                     let read = read_wire1(&wires, c.inputs[0].0.unwrap_or(num_wires));
@@ -400,8 +419,26 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, latency_ram_tick_d
                     if write {
                         let new_value = read_wire(&wires, c.inputs[1].0.unwrap_or(num_wires), *x);
                         let to_store = u64::to_le_bytes(new_value);
-                        data[c.data_offset..(c.data_offset + 8)].copy_from_slice(&to_store)
+                        data[c.data_offset..(c.data_offset + 8)].copy_from_slice(&to_store);
                     }
+                }
+                ComponentType::Register8Plus => {
+                    let read = read_wire1(&wires, c.inputs[0].0.unwrap_or(num_wires));
+                    if read {
+                        let stored = data[c.data_offset] as u64;
+                        c.outputs[0].0.map(|i| write_wire(&mut wires, i, 8, stored, 0xFF)).unwrap_or(Ok(()))?;
+                    }
+                }
+                ComponentType::VirtualRegister8Plus => {
+                    let write = read_wire1(&wires, c.inputs[0].0.unwrap_or(num_wires));
+                    if write {
+                        let new_value = read_wire8(&wires, c.inputs[1].0.unwrap_or(num_wires));
+                        data[c.data_offset] = new_value;
+                    }
+                }
+                ComponentType::VirtualRegister8Plus2 => {
+                    let stored = data[c.data_offset] as u64;
+                    c.outputs[0].0.map(|i| write_wire(&mut wires, i, 8, stored, 0xFF)).unwrap_or(Ok(()))?;
                 }
                 ComponentType::Shl(x) => {
                     let data = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
@@ -503,12 +540,12 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, latency_ram_tick_d
                     if overwrite {
                         let new_value = read_wire(&wires, c.inputs[1].0.unwrap_or(num_wires), *x);
                         let to_store = u64::to_le_bytes(new_value);
-                        data[c.data_offset..(c.data_offset + 8)].copy_from_slice(&to_store)
+                        data[c.data_offset..(c.data_offset + 8)].copy_from_slice(&to_store);
                     } else {
                         let stored = u64::from_le_bytes(data[c.data_offset..(c.data_offset + 8)].try_into().unwrap());
                         let new_value = stored.wrapping_add(*increment);
                         let to_store = u64::to_le_bytes(new_value);
-                        data[c.data_offset..(c.data_offset + 8)].copy_from_slice(&to_store)
+                        data[c.data_offset..(c.data_offset + 8)].copy_from_slice(&to_store);
                     }
                 }
                 ComponentType::Constant(value, x) => {

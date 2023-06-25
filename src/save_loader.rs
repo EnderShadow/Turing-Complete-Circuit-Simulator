@@ -326,6 +326,12 @@ pub struct Point {
     pub y: i16
 }
 
+impl Point {
+    pub fn new(x: i16, y: i16) -> Point {
+        Point {x, y}
+    }
+}
+
 impl From<Point> for (i16, i16) {
     fn from(p: Point) -> (i16, i16) {
         (p.x, p.y)
