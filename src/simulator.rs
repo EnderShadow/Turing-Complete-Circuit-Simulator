@@ -184,6 +184,28 @@ impl IntermediateComponent {
     }
 }
 
+pub trait SimulatorIO {
+    fn continue_simulation(&mut self, tick: u64) -> bool;
+    fn handle_input(&mut self, tick: u64, input_index: usize) -> u64;
+    fn check_output(&mut self, tick: u64, outputs: &[Option<u64>]) -> bool;
+}
+
+pub struct DefaultSimIO;
+
+impl SimulatorIO for DefaultSimIO {
+    fn continue_simulation(&mut self, _tick: u64) -> bool {
+        true
+    }
+
+    fn handle_input(&mut self, _tick: u64, _input_index: usize) -> u64 {
+        0
+    }
+
+    fn check_output(&mut self, _tick: u64, _outputs: &[Option<u64>]) -> bool {
+        true
+    }
+}
+
 fn remove_matching<T>(vec: &mut Vec<T>, p: impl Fn(&T) -> bool) -> Vec<T> {
     let mut removed = Vec::new();
     let mut i = vec.len();
@@ -273,7 +295,7 @@ fn write_wire(wires: &mut [(u64, u64)], index: usize, size: u8, new_value: u64, 
     }
 }
 
-pub fn simulate(components: Vec<Component>, num_wires: usize, latency_ram_tick_delay: u64, data_needed_bytes: usize, print_output: bool, sim_cont_fn: impl Fn(u64) -> bool, input_fn: impl Fn(u64, usize) -> u64, output_check_fn: impl Fn(u64, &Vec<Option<u64>>) -> bool) -> Result<u64, String> {
+pub fn simulate<T: SimulatorIO>(components: Vec<Component>, num_wires: usize, latency_ram_tick_delay: u64, data_needed_bytes: usize, print_output: bool, sim_io_handler: &mut T) -> Result<u64, String> {
     let mut data = vec![0u8; data_needed_bytes];
     let components = dag_sort(components)?;
 
@@ -311,15 +333,15 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, latency_ram_tick_d
     let mut wires = vec![(0, 0); num_wires + 1];
     let mut tick_outputs: Vec<Option<u64>> = vec![None; num_outputs];
 
-    while sim_cont_fn(iteration) {
+    while sim_io_handler.continue_simulation(iteration) {
         for c in &components {
             match &c.component_type {
                 ComponentType::Input(name, x) => {
-                    let value = input_fn(iteration, c.numeric_id);
+                    let value = sim_io_handler.handle_input(iteration, c.numeric_id);
                     c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, value, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
                 }
                 ComponentType::SwitchedInput(name, x) => {
-                    let value = input_fn(iteration, c.numeric_id);
+                    let value = sim_io_handler.handle_input(iteration, c.numeric_id);
                     let enable = read_wire1(&wires, c.inputs[0].0.unwrap_or(num_wires));
                     if enable {
                         c.outputs[0].0.map(|i| { write_wire(&mut wires, i, *x, value, u64::MAX >> (64 - *x)) }).unwrap_or(Ok(()))?;
@@ -733,7 +755,7 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, latency_ram_tick_d
             }
         }
 
-        let passed = output_check_fn(iteration, &tick_outputs);
+        let passed = sim_io_handler.check_output(iteration, &tick_outputs);
 
         iteration += 1;
 
