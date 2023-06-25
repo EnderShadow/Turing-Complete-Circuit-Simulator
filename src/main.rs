@@ -701,7 +701,19 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
             }
             ComponentType::Deleted4 => {panic!("Not Implemented")}
             ComponentType::Deleted5 => {panic!("Not Implemented")}
-            ComponentType::Keyboard => {panic!("Not Implemented")}
+            ComponentType::Keyboard => {
+                IntermediateComponent {
+                    component_type: Keyboard,
+                    position: c.position,
+                    inputs: vec![(Point::new(-2, -2), 1)],
+                    outputs: vec![
+                        (Point::new(1, -3), 1, false),
+                        (Point::new(2, -2), 8, false),
+                        (Point::new(2, -1), 1, false)
+                    ],
+                    bidirectional: vec![]
+                }
+            }
             ComponentType::FileLoader => {panic!("Not Implemented")}
             ComponentType::Halt => {panic!("Not Implemented")}
             ComponentType::WireCluster => {panic!("Not Implemented")}
