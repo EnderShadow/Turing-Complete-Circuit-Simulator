@@ -1175,8 +1175,6 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
-    use std::rc::Rc;
     use std::time::Instant;
     use crate::{DEBUG, read_from_save};
     use crate::simulator::ComponentType::{Input, Output};
@@ -1232,16 +1230,16 @@ mod tests {
         let end = Instant::now();
         println!("Simulation took {} seconds", (end - start).as_secs_f32());
 
-        match result {
+        match &result {
             Err(error) => {
-                assert!(false);
                 println!("{}", error);
             },
             Ok(num_ticks) => {
                 println!("Simulation successfully exited after {} ticks", num_ticks);
-                assert!(true);
             }
         }
+
+        assert!(result.is_ok());
     }
 
     #[test]
@@ -1294,16 +1292,16 @@ mod tests {
         let end = Instant::now();
         println!("Simulation took {} seconds", (end - start).as_secs_f32());
 
-        match result {
+        match &result {
             Err(error) => {
-                assert!(false);
                 println!("{}", error);
             },
             Ok(num_ticks) => {
                 println!("Simulation successfully exited after {} ticks", num_ticks);
-                assert!(true);
             }
         }
+
+        assert!(result.is_ok());
     }
 
     #[test]
@@ -1346,15 +1344,14 @@ mod tests {
         };
 
         let result = simulate(components, num_wires, latency_ram_delay, data_bytes_needed, false, |tick| tick < 64, input_function, output_check_function);
-        match result {
+        match &result {
             Err(error) => {
-                assert!(false);
                 println!("{}", error);
             },
             Ok(num_ticks) => {
                 println!("Simulation successfully exited after {} ticks", num_ticks);
-                assert!(true);
             }
         }
+        assert!(result.is_ok());
     }
 }
