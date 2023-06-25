@@ -36,7 +36,7 @@ fn main() {
         1024
     };
 
-    let result = simulate(components, num_wires, latency_ram_delay, data_bytes_needed, u64::MAX, true, |_, _| {0}, |_, _| {true});
+    let result = simulate(components, num_wires, latency_ram_delay, data_bytes_needed, true, |_| true, |_, _| 0, |_, _| true);
     match result {
         Err(error) => {
             println!("{}", error);
@@ -1228,7 +1228,7 @@ mod tests {
         };
 
         let start = Instant::now();
-        let result = simulate(components, num_wires, latency_ram_delay, data_bytes_needed, 1 << 17, false, input_function, output_check_function);
+        let result = simulate(components, num_wires, latency_ram_delay, data_bytes_needed, false, |tick| tick < 1 << 17, input_function, output_check_function);
         let end = Instant::now();
         println!("Simulation took {} seconds", (end - start).as_secs_f32());
 
@@ -1290,7 +1290,7 @@ mod tests {
         };
 
         let start = Instant::now();
-        let result = simulate(components, num_wires, latency_ram_delay, data_bytes_needed, 1 << 17, false, input_function, output_check_function);
+        let result = simulate(components, num_wires, latency_ram_delay, data_bytes_needed, false, |tick| tick < 1 << 17, input_function, output_check_function);
         let end = Instant::now();
         println!("Simulation took {} seconds", (end - start).as_secs_f32());
 
@@ -1345,7 +1345,7 @@ mod tests {
             expected_output == actual_output.unwrap_or(u64::MAX)
         };
 
-        let result = simulate(components, num_wires, latency_ram_delay, data_bytes_needed, 64, false, input_function, output_check_function);
+        let result = simulate(components, num_wires, latency_ram_delay, data_bytes_needed, false, |tick| tick < 64, input_function, output_check_function);
         match result {
             Err(error) => {
                 assert!(false);

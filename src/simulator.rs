@@ -254,7 +254,7 @@ fn write_wire(wires: &mut [(u64, u64)], index: usize, size: u8, new_value: u64, 
     }
 }
 
-pub fn simulate(components: Vec<Component>, num_wires: usize, latency_ram_tick_delay: u64, data_needed_bytes: usize, tick_limit: u64, print_output: bool, input_fn: impl Fn(u64, usize) -> u64, output_check_fn: impl Fn(u64, &Vec<Option<u64>>) -> bool) -> Result<u64, String> {
+pub fn simulate(components: Vec<Component>, num_wires: usize, latency_ram_tick_delay: u64, data_needed_bytes: usize, print_output: bool, sim_cont_fn: impl Fn(u64) -> bool, input_fn: impl Fn(u64, usize) -> u64, output_check_fn: impl Fn(u64, &Vec<Option<u64>>) -> bool) -> Result<u64, String> {
     let mut data = vec![0u8; data_needed_bytes];
     let components = dag_sort(components)?;
 
@@ -292,7 +292,7 @@ pub fn simulate(components: Vec<Component>, num_wires: usize, latency_ram_tick_d
     let mut wires = vec![(0, 0); num_wires + 1];
     let mut tick_outputs: Vec<Option<u64>> = vec![None; num_outputs];
 
-    while iteration < tick_limit {
+    while sim_cont_fn(iteration) {
         for c in &components {
             match &c.component_type {
                 ComponentType::Input(name, x) => {
