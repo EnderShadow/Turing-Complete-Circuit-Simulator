@@ -2,8 +2,9 @@ use std::cmp::max;
 use std::collections::HashSet;
 use std::ops::Not;
 use std::rc::Rc;
+use std::time::Instant;
 use crate::DEBUG;
-use crate::save_loader::Point;
+use crate::save_parser::Point;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum ComponentType {
@@ -297,11 +298,17 @@ fn write_wire(wires: &mut [(u64, u64)], index: usize, size: u8, new_value: u64, 
 
 pub fn simulate<T: SimulatorIO>(components: Vec<Component>, num_wires: usize, latency_ram_tick_delay: u64, data_needed_bytes: usize, print_output: bool, sim_io_handler: &mut T) -> Result<u64, String> {
     let mut data = vec![0u8; data_needed_bytes];
+
+    let start = Instant::now();
     let components = dag_sort(components)?;
+    let end = Instant::now();
+    println!("DAG sort took {} seconds", (end - start).as_secs_f32());
 
     let mut num_inputs: usize = 0;
     let mut num_outputs: usize = 0;
     let mut num_latency_ram: usize = 0;
+
+    let start = Instant::now();
 
     for c in &components {
         match c.component_type {
@@ -332,6 +339,9 @@ pub fn simulate<T: SimulatorIO>(components: Vec<Component>, num_wires: usize, la
     let mut iteration = 0u64;
     let mut wires = vec![(0, 0); num_wires + 1];
     let mut tick_outputs: Vec<Option<u64>> = vec![None; num_outputs];
+
+    let end = Instant::now();
+    println!("Simulation prep took {} seconds", (end - start).as_secs_f32());
 
     while sim_io_handler.continue_simulation(iteration) {
         for c in &components {

@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use crate::save_loader::{SaveFile, get_u8, get_u16, get_u32, get_u64, get_bool, get_string, get_vec_u8, get_vec_u64, get_point, get_sync_state, Component, ComponentType, DELETED_KINDS, Point, Wire, WireType, TELEPORT_WIRE, DIRECTIONS};
-use crate::save_loader::ComponentType::{Bidirectional1, Bidirectional16, Bidirectional32, Bidirectional64, Bidirectional8, Custom, Deleted12, Deleted13, Deleted14, Deleted15, Deleted16, Error, Program, Program8_1, Program8_4};
+use crate::save_parser::{SaveFile, get_u8, get_u16, get_u32, get_u64, get_bool, get_string, get_vec_u8, get_vec_u64, get_point, get_sync_state, Component, ComponentType, DELETED_KINDS, Point, Wire, WireType, TELEPORT_WIRE, DIRECTIONS};
+use crate::save_parser::ComponentType::{Bidirectional1, Bidirectional16, Bidirectional32, Bidirectional64, Bidirectional8, Custom, Deleted12, Deleted13, Deleted14, Deleted15, Deleted16, Error, Program, Program8_1, Program8_4};
 
 pub fn parse(input: &[u8], i: &mut usize) -> Option<SaveFile> {
     let input = tetsy_snappy::decompress(&input[*i..input.len()]).ok()?;

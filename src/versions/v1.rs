@@ -1,6 +1,6 @@
 use std::collections::HashMap;
-use crate::save_loader::{SaveFile, get_u8, get_u16, get_u32, get_u64, get_bool, Component, ComponentType, DELETED_KINDS, Point, Wire, WireType, TELEPORT_WIRE, DIRECTIONS, SyncState, get_point};
-use crate::save_loader::ComponentType::{Bidirectional1, Bidirectional16, Bidirectional32, Bidirectional64, Bidirectional8, Custom, Deleted12, Deleted13, Deleted14, Deleted15, Deleted16, Deleted6, Deleted7, Error, Program, Program8_1, Program8_4};
+use crate::save_parser::{SaveFile, get_u8, get_u16, get_u32, get_u64, get_bool, Component, ComponentType, DELETED_KINDS, Point, Wire, WireType, TELEPORT_WIRE, DIRECTIONS, SyncState, get_point};
+use crate::save_parser::ComponentType::{Bidirectional1, Bidirectional16, Bidirectional32, Bidirectional64, Bidirectional8, Custom, Deleted12, Deleted13, Deleted14, Deleted15, Deleted16, Deleted6, Deleted7, Error, Program, Program8_1, Program8_4};
 
 fn get_string(input: &[u8], i: &mut usize) -> Option<String> {
     let length = get_u64(input, i)? as usize;
