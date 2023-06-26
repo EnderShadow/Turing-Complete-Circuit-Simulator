@@ -587,7 +587,7 @@ pub fn get_string(input: &[u8], i: &mut usize) -> Option<String> {
     }
 }
 
-pub fn load_save(file_path: &str) -> Result<SaveFile, String> {
+pub fn parse_save(file_path: &str) -> Result<SaveFile, String> {
     let data = fs::read(file_path).unwrap_or_else(|_| panic!("Failed to load file: {}", file_path));
     let mut i: usize = 0;
     let version = get_u8(&data, &mut i).ok_or("Failed to get save version")?;
