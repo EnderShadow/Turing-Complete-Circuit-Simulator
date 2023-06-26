@@ -1,5 +1,5 @@
 use crate::simulator::{DefaultSimIO, simulate};
-use argparse::{ArgumentParser, Store};
+use argparse::{ArgumentParser, Store, StoreTrue};
 use crate::save_loader::read_from_save;
 
 mod save_parser;
@@ -11,11 +11,13 @@ const DEBUG: bool = false;
 
 fn main() {
     let mut path = String::new();
+    let mut verbose = false;
 
     {
         let mut ap = ArgumentParser::new();
         ap.set_description("Turing Complete Circuit Simulator");
-        ap.refer(&mut path).add_argument("path", Store, "The path to the circuit.data file.");
+        ap.refer(&mut path).add_argument("path", Store, "The path to the circuit.data file.").required();
+        ap.refer(&mut verbose).add_option(&["-v", "--verbose"], StoreTrue, "Display more verbose information");
         ap.parse_args_or_exit();
     }
 
