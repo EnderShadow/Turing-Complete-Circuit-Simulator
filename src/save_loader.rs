@@ -676,15 +676,64 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64], o
                     bidirectional: vec![]
                 }
             }
-            ComponentType::FileLoader => {panic!("Not Implemented")}
-            ComponentType::Halt => {panic!("Not Implemented")}
+            ComponentType::FileLoader => {
+                IntermediateComponent {
+                    component_type: FileRom(c.custom_string.clone()),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-3, -1), 1),
+                        (Point::new(-4, 0), 64)
+                    ],
+                    outputs: vec![(Point::new(4, 0), 64, true)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Halt => {
+                IntermediateComponent {
+                    component_type: Halt(c.custom_string.clone()),
+                    position: c.position,
+                    inputs: vec![(Point::new(-1, 0), 1)],
+                    outputs: vec![],
+                    bidirectional: vec![]
+                }
+            }
             ComponentType::WireCluster => {panic!("Not Implemented")}
-            ComponentType::LevelScreen => {panic!("Not Implemented")}
-            ComponentType::Program8_1 => {panic!("Not Implemented")}
-            ComponentType::Program8_1Red => {panic!("Not Implemented")}
+            ComponentType::LevelScreen => {
+                IntermediateComponent {
+                    component_type: LevelScreen,
+                    position: c.position,
+                    inputs: vec![],
+                    outputs: vec![],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Program8_1 | ComponentType::Program8_4 => {
+                todo!("Implement Program String");
+                IntermediateComponent {
+                    component_type: Program(String::default(), 8),
+                    position: c.position,
+                    inputs: vec![(Point::new(-13, -7), 8)],
+                    outputs: vec![
+                        (Point::new(13, -7), 8, false),
+                        (Point::new(13, -6), 8, false),
+                        (Point::new(13, -5), 8, false),
+                        (Point::new(13, -4), 8, false)
+                    ],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Program8_1Red => {
+                todo!("Implement Program data");
+                IntermediateComponent {
+                    component_type: LevelProgram(Vec::default()),
+                    position: c.position,
+                    inputs: vec![(Point::new(-13, -7), 8)],
+                    outputs: vec![(Point::new(13, -7), 8, false)],
+                    bidirectional: vec![]
+                }
+            }
             ComponentType::Deleted6 => {panic!("Not Implemented")}
             ComponentType::Deleted7 => {panic!("Not Implemented")}
-            ComponentType::Program8_4 => {panic!("Not Implemented")}
             ComponentType::LevelGate => {panic!("Not Implemented")}
             ComponentType::Input1 => {
                 IntermediateComponent {
