@@ -119,7 +119,7 @@ fn get_component(input: &[u8], i: &mut usize) -> Option<Component> {
 }
 
 fn get_wires(input: &[u8], i: &mut usize) -> Option<Vec<Wire>> {
-    let mut wires: Vec<Wire> = Vec::new();
+    let mut wires = Vec::new();
     let length = get_u64(input, i)?;
     let mut j = 0u64;
     while j < length {

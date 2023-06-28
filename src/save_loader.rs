@@ -1,25 +1,25 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::ops::Not;
 use std::rc::Rc;
-use crate::DEBUG;
+use crate::{Options, VERBOSITY_ALL};
 use crate::save_parser::{parse_save, Point, Wire, Component as SaveComponent, ComponentType};
 use crate::simulator::{Component, IntermediateComponent};
 use crate::simulator::ComponentType::*;
 
-pub fn read_from_save(path: &str) -> (Vec<Component>, usize, usize, u64) {
+pub fn read_from_save(path: &str, options: &Options) -> (Vec<Component>, usize, usize, u64) {
     let save = parse_save(path);
     let save = save.unwrap();
-    if DEBUG {
+    if options.verbosity >= VERBOSITY_ALL {
         for c in &*save.components {
             println!("{:?}", c.component_type)
         }
     }
 
-    let wire_clusters = merge_wires(&save.wires);
-    let components = resolve_components(&save.components, &save.dependencies);
+    let wire_clusters = merge_wires(&save.wires, options);
+    let components = resolve_components(&save.components, &save.dependencies, options);
 
-    let components = optimize_components(components);
-    let wire_clusters = remove_unused_wire_clusters(wire_clusters, &components);
+    let components = optimize_components(components, options);
+    let wire_clusters = remove_unused_wire_clusters(wire_clusters, &components, options);
 
     let mut required_data = HashMap::<Point, usize>::new();
     for component in &components {
@@ -90,7 +90,7 @@ pub fn read_from_save(path: &str) -> (Vec<Component>, usize, usize, u64) {
     (components, wire_clusters.len(), offset, save.delay)
 }
 
-fn merge_wires(wire_segments: &Vec<Wire>) -> Vec<HashSet<Point>> {
+fn merge_wires(wire_segments: &Vec<Wire>, options: &Options) -> Vec<HashSet<Point>> {
     let mut wire_clusters: VecDeque<HashSet<Point>> = VecDeque::new();
     for wire in wire_segments {
         let first = *wire.points.first().unwrap();
@@ -146,7 +146,7 @@ fn map_point_to_wire_index(wire_clusters: &[HashSet<Point>], point: &Point) -> O
     None
 }
 
-fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -> Vec<IntermediateComponent> {
+fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64], options: &Options) -> Vec<IntermediateComponent> {
     let mut components: Vec<IntermediateComponent> = Vec::new();
 
     save_components.iter().for_each(|c| {
@@ -1109,11 +1109,11 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64]) -
 }
 
 // TODO
-fn optimize_components(components: Vec<IntermediateComponent>) -> Vec<IntermediateComponent> {
+fn optimize_components(components: Vec<IntermediateComponent>, options: &Options) -> Vec<IntermediateComponent> {
     components
 }
 
 // TODO
-fn remove_unused_wire_clusters(wire_clusters: Vec<HashSet<Point>>, components: &[IntermediateComponent]) -> Vec<HashSet<Point>> {
+fn remove_unused_wire_clusters(wire_clusters: Vec<HashSet<Point>>, components: &[IntermediateComponent], options: &Options) -> Vec<HashSet<Point>> {
     wire_clusters
 }

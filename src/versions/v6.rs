@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::save_parser::{SaveFile, get_u8, get_u16, get_i16, get_u32, get_u64, get_bool, get_string, get_vec_u8, get_vec_u64, get_point, get_sync_state, Component, ComponentType, DELETED_KINDS, Point, Wire, WireType, TELEPORT_WIRE, DIRECTIONS};
+use crate::save_parser::{SaveFile, get_u8, get_u16, get_i16, get_u32, get_u64, get_bool, get_string, get_vec_u8, get_vec_u64, get_point, get_sync_state, Component, ComponentType, DELETED_KINDS, Point, Wire, WireType, TELEPORT_WIRE, DIRECTIONS, get_wires};
 use crate::save_parser::ComponentType::{Bidirectional1, Bidirectional16, Bidirectional32, Bidirectional64, Bidirectional8, Custom, Deleted12, Deleted13, Deleted14, Deleted15, Deleted16, Error, Program, Program8_1, Program8_4};
 
 pub fn parse(input: &[u8], i: &mut usize) -> Option<SaveFile> {
@@ -85,53 +85,5 @@ fn get_component(input: &[u8], i: &mut usize) -> Option<Component> {
 
             programs
         }
-    })
-}
-
-fn get_wires(input: &[u8], i: &mut usize) -> Option<Vec<Wire>> {
-    let mut wires = Vec::new();
-    let length = get_u64(input, i)?;
-    let mut j = 0u64;
-    while j < length {
-        wires.push(get_wire(input, i)?);
-        j += 1
-    }
-
-    Some(wires)
-}
-
-fn get_wire(input: &[u8], i: &mut usize) -> Option<Wire> {
-    Some(Wire {
-        wire_type: WireType::from_ordinal(get_u8(input, i)? as usize)?,
-        color: get_u8(input, i)?,
-        comment: get_string(input, i)?,
-        points: {
-            // path is commented out since it's not actually used. The only required points are the endpoints.
-            //let mut path: Vec<Point> = Vec::new();
-
-            let first = get_point(input, i)?;
-            let mut last = first;
-            //path.push(last);
-            let mut segment = get_u8(input, i)?;
-            if segment == TELEPORT_WIRE {
-                last = get_point(input, i)?;
-                //path.push(last);
-            } else {
-                let mut length_left = segment & 0x1F;
-                while length_left != 0 {
-                    let direction = &DIRECTIONS[(segment >> 5) as usize];
-                    while length_left > 0 {
-                        last = &last + direction;
-                        //path.push(last);
-                        length_left -= 1;
-                    }
-
-                    segment = get_u8(input, i)?;
-                    length_left = segment & 0x1F;
-                }
-            }
-
-            Some(vec![first, last])
-        }?
     })
 }

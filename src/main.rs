@@ -1,5 +1,5 @@
 use crate::simulator::{DefaultSimIO, simulate};
-use argparse::{ArgumentParser, Store, StoreTrue};
+use argparse::{ArgumentParser, IncrBy, Store};
 use crate::save_loader::read_from_save;
 
 mod save_parser;
@@ -7,24 +7,31 @@ mod versions;
 mod simulator;
 mod save_loader;
 
-const DEBUG: bool = false;
+#[derive(Default)]
+pub struct Options {
+    verbosity: u64
+}
+
+const VERBOSITY_NONE: u64 = 0;
+const VERBOSITY_LOW: u64 = 1;
+const VERBOSITY_ALL: u64 = 2;
 
 fn main() {
-    let mut path = String::new();
-    let mut verbose = false;
+    let mut path = String::default();
+    let mut options = Options::default();
 
     {
         let mut ap = ArgumentParser::new();
         ap.set_description("Turing Complete Circuit Simulator");
         ap.refer(&mut path).add_argument("path", Store, "The path to the circuit.data file.").required();
-        ap.refer(&mut verbose).add_option(&["-v", "--verbose"], StoreTrue, "Display more verbose information");
+        ap.refer(&mut options.verbosity).add_option(&["-v", "--verbose"], IncrBy(1), "Display more verbose information");
         ap.parse_args_or_exit();
     }
 
-    let (mut components, num_wires, data_bytes_needed, delay) = read_from_save(&path);
+    let (mut components, num_wires, data_bytes_needed, delay) = read_from_save(&path, &options);
 
     for c in components.iter_mut() {
-        if DEBUG {
+        if options.verbosity >= VERBOSITY_ALL {
             println!("{:?}", c)
         }
     }
@@ -35,7 +42,7 @@ fn main() {
         1024
     };
 
-    let result = simulate(components, num_wires, latency_ram_delay, data_bytes_needed, true, &mut DefaultSimIO);
+    let result = simulate(components, num_wires, latency_ram_delay, data_bytes_needed, true, &mut DefaultSimIO, &options);
     match result {
         Err(error) => {
             println!("{}", error);
@@ -48,10 +55,11 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
-    use std::time::Instant;
-    use crate::DEBUG;
+    use crate::{Options, VERBOSITY_ALL, VERBOSITY_LOW};
     use crate::save_loader::read_from_save;
     use crate::simulator::{simulate, SimulatorIO};
+
+    const TEST_VERBOSITY: u64 = VERBOSITY_LOW;
 
     struct ByteAdderIOHandler;
 
@@ -123,10 +131,14 @@ mod tests {
 
     #[test]
     fn test_byte_adder_naive_ripple() {
-        let (mut components, num_wires, data_bytes_needed, delay) = read_from_save("test/resources/byte_adder/standard-ripple-carry.data");
+        let options = Options {
+            verbosity: TEST_VERBOSITY
+        };
 
-        for c in components.iter_mut() {
-            if DEBUG {
+        let (components, num_wires, data_bytes_needed, delay) = read_from_save("test/resources/byte_adder/standard-ripple-carry.data", &options);
+
+        if options.verbosity >= VERBOSITY_ALL {
+            for c in components.iter() {
                 println!("{:?}", c)
             }
         }
@@ -137,10 +149,7 @@ mod tests {
             1024
         };
 
-        let start = Instant::now();
-        let result = simulate(components, num_wires, latency_ram_delay, data_bytes_needed, false, &mut ByteAdderIOHandler);
-        let end = Instant::now();
-        println!("Simulation took {} seconds", (end - start).as_secs_f32());
+        let result = simulate(components, num_wires, latency_ram_delay, data_bytes_needed, false, &mut ByteAdderIOHandler, &options);
 
         match &result {
             Err(error) => {
@@ -156,10 +165,14 @@ mod tests {
 
     #[test]
     fn test_byte_adder_64_20() {
-        let (mut components, num_wires, data_bytes_needed, delay) = read_from_save("test/resources/byte_adder/decomposed-ripple-switch-carry.data");
+        let options = Options {
+            verbosity: TEST_VERBOSITY
+        };
 
-        for c in components.iter_mut() {
-            if DEBUG {
+        let (components, num_wires, data_bytes_needed, delay) = read_from_save("test/resources/byte_adder/decomposed-ripple-switch-carry.data", &options);
+
+        if options.verbosity >= VERBOSITY_ALL {
+            for c in components.iter() {
                 println!("{:?}", c)
             }
         }
@@ -170,10 +183,7 @@ mod tests {
             1024
         };
 
-        let start = Instant::now();
-        let result = simulate(components, num_wires, latency_ram_delay, data_bytes_needed, false, &mut ByteAdderIOHandler);
-        let end = Instant::now();
-        println!("Simulation took {} seconds", (end - start).as_secs_f32());
+        let result = simulate(components, num_wires, latency_ram_delay, data_bytes_needed, false, &mut ByteAdderIOHandler, &options);
 
         match &result {
             Err(error) => {
@@ -189,10 +199,14 @@ mod tests {
 
     #[test]
     fn test_5bit_decoder() {
-        let (mut components, num_wires, data_bytes_needed, delay) = read_from_save("test/resources/5-bit-decoder.data");
+        let options = Options {
+            verbosity: TEST_VERBOSITY
+        };
 
-        for c in components.iter_mut() {
-            if DEBUG {
+        let (components, num_wires, data_bytes_needed, delay) = read_from_save("test/resources/5-bit-decoder.data", &options);
+
+        if options.verbosity >= VERBOSITY_ALL {
+            for c in components.iter() {
                 println!("{:?}", c)
             }
         }
@@ -203,7 +217,7 @@ mod tests {
             1024
         };
 
-        let result = simulate(components, num_wires, latency_ram_delay, data_bytes_needed, false, &mut Decoder5BitIOHandler);
+        let result = simulate(components, num_wires, latency_ram_delay, data_bytes_needed, false, &mut Decoder5BitIOHandler, &options);
         match &result {
             Err(error) => {
                 println!("{}", error);
