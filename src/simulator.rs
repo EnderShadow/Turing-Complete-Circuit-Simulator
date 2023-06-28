@@ -8,10 +8,13 @@ use crate::save_parser::Point;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
 pub enum ComponentType {
+    Nop,
     Input(String, u8),
     SwitchedInput(String, u8),
+    InputMultiBitPin,
     Output(Rc<str>, u8),
     SwitchedOutput(Rc<str>, u8),
+    OutputMultiBitPin,
     BidirectionalIO(Rc<str>, u8),
     Buffer(u8),
     Not(u8),
@@ -86,6 +89,7 @@ pub enum ComponentType {
     BitIndexer(u8),
     ByteIndexer(u8),
     Program(String, u8),
+    LevelProgram(Vec<u8>),
     HDD(u64),
     VirtualHDD(u64),
     Custom(u64)
@@ -373,6 +377,7 @@ pub fn simulate<T: SimulatorIO>(components: Vec<Component>, num_wires: usize, la
     while sim_io_handler.continue_simulation(iteration) {
         for c in &components {
             match &c.component_type {
+                ComponentType::Nop => {}
                 ComponentType::Input(name, x) => {
                     let value = sim_io_handler.handle_input(iteration, c.numeric_id);
                     c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, value, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
@@ -381,7 +386,13 @@ pub fn simulate<T: SimulatorIO>(components: Vec<Component>, num_wires: usize, la
                     let value = sim_io_handler.handle_input(iteration, c.numeric_id);
                     let enable = read_wire1(&wires, c.inputs[0].0.unwrap_or(num_wires));
                     if enable {
-                        c.outputs[0].0.map(|i| { write_wire(&mut wires, i, *x, value, u64::MAX >> (64 - *x)) }).unwrap_or(Ok(()))?;
+                        c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, value, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
+                    }
+                }
+                ComponentType::InputMultiBitPin => {
+                    let mut value = sim_io_handler.handle_input(iteration, c.numeric_id);
+                    for (idx, output) in c.outputs.iter().enumerate() {
+                        output.0.map(|i| {write_wire(&mut wires, i, 1, value >> idx, 1)}).unwrap_or(Ok(()))?;
                     }
                 }
                 ComponentType::Output(name, x) => {
@@ -396,6 +407,14 @@ pub fn simulate<T: SimulatorIO>(components: Vec<Component>, num_wires: usize, la
                     } else {
                         tick_outputs[c.numeric_id] = None;
                     }
+                }
+                ComponentType::OutputMultiBitPin => {
+                    let mut value: u64 = 0;
+                    for (idx, input) in c.inputs.iter().enumerate() {
+                        let pin_value = read_wire(&wires, input.0.unwrap_or(num_wires), 1);
+                        value |= pin_value << idx
+                    }
+                    tick_outputs[c.numeric_id] = Some(value);
                 }
                 ComponentType::BidirectionalIO(name, x) => {
                     let v = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
@@ -777,6 +796,7 @@ pub fn simulate<T: SimulatorIO>(components: Vec<Component>, num_wires: usize, la
                 ComponentType::BitIndexer(_) => {}
                 ComponentType::ByteIndexer(_) => {}
                 ComponentType::Program(_, _) => {}
+                ComponentType::LevelProgram(_) => {}
                 ComponentType::HDD(_) => {}
                 ComponentType::VirtualHDD(_) => {}
                 ComponentType::Custom(_) => {}
