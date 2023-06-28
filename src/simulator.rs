@@ -296,6 +296,26 @@ fn write_wire(wires: &mut [(u64, u64)], index: usize, size: u8, new_value: u64, 
     }
 }
 
+fn fast_read_wire(wires: &[(u64, u64)], index: usize, size: u8) -> u64 {
+    wires[index].0 & (u64::MAX >> (64 - size))
+}
+
+fn fast_read_wire1(wires: &[(u64, u64)], index: usize) -> bool {
+    wires[index].0 & 1 != 0
+}
+
+fn fast_read_wire8(wires: &[(u64, u64)], index: usize) -> u8 {
+    wires[index].0 as u8
+}
+
+fn fast_write_wire(wires: &mut [(u64, u64)], index: usize, size: u8, new_value: u64, _new_driven: u64) -> Result<(), String>{
+    let (wire, _) = wires[index];
+    let size_mask = u64::MAX >> (64 - size);
+    let new_value = new_value & size_mask;
+    wires[index] = (wire | new_value, 0);
+    Ok(())
+}
+
 pub fn simulate<T: SimulatorIO>(components: Vec<Component>, num_wires: usize, latency_ram_tick_delay: u64, data_needed_bytes: usize, print_output: bool, sim_io_handler: &mut T, options: &Options) -> Result<u64, String> {
     let mut data = vec![0u8; data_needed_bytes];
 
