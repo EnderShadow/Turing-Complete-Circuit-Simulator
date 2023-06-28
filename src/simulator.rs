@@ -339,10 +339,10 @@ pub fn simulate<T: SimulatorIO>(components: Vec<Component>, num_wires: usize, la
 
     for c in &components {
         match c.component_type {
-            ComponentType::Input(_, _) | ComponentType::SwitchedInput(_, _) => {
+            ComponentType::Input(_, _) | ComponentType::SwitchedInput(_, _) | ComponentType::InputMultiBitPin => {
                 num_inputs = max(num_inputs, c.numeric_id);
             }
-            ComponentType::Output(_, _) | ComponentType::SwitchedOutput(_, _) | ComponentType::BidirectionalIO(_, _) => {
+            ComponentType::Output(_, _) | ComponentType::SwitchedOutput(_, _) | ComponentType::OutputMultiBitPin | ComponentType::BidirectionalIO(_, _) => {
                 num_outputs = max(num_outputs, c.numeric_id);
             }
             ComponentType::LatencyRam(_, _) => {

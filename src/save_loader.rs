@@ -57,12 +57,12 @@ pub fn read_from_save(path: &str, options: &Options) -> (Vec<Component>, usize, 
     let components: Vec<Component> = components.into_iter().map(|c| {
         Component {
             numeric_id: match &c.component_type {
-                Input(_, _) | SwitchedInput(_, _) => {
+                Input(_, _) | SwitchedInput(_, _) | InputMultiBitPin => {
                     let i_index = input_index;
                     input_index += 1;
                     i_index
                 }
-                Output(_, _) | SwitchedOutput(_, _) | BidirectionalIO(_, _) => {
+                Output(_, _) | SwitchedOutput(_, _) | OutputMultiBitPin | BidirectionalIO(_, _) => {
                     let o_index = output_index;
                     output_index += 1;
                     o_index
@@ -708,9 +708,8 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64], o
                 }
             }
             ComponentType::Program8_1 | ComponentType::Program8_4 => {
-                todo!("Implement Program String");
                 IntermediateComponent {
-                    component_type: Program(String::default(), 8),
+                    component_type: Program(c.selected_programs[&c.setting_1].clone(), 8),
                     position: c.position,
                     inputs: vec![(Point::new(-13, -7), 8)],
                     outputs: vec![
@@ -735,7 +734,7 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64], o
             ComponentType::Deleted6 => {panic!("Not Implemented")}
             ComponentType::Deleted7 => {panic!("Not Implemented")}
             ComponentType::LevelGate => {panic!("Not Implemented")}
-            ComponentType::Input1 => {
+            ComponentType::Input1 | ComponentType::LevelInput1 => {
                 IntermediateComponent {
                     component_type: Input(c.custom_string.clone(), 1),
                     position: c.position,
@@ -744,11 +743,46 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64], o
                     bidirectional: vec![]
                 }
             }
-            ComponentType::LevelInput2Pin => {panic!("Not Implemented")}
-            ComponentType::LevelInput3Pin => {panic!("Not Implemented")}
-            ComponentType::LevelInput4Pin => {panic!("Not Implemented")}
-            ComponentType::LevelInputConditions => {panic!("Not Implemented")}
-            ComponentType::Input8 => {
+            ComponentType::LevelInput2Pin => {
+                IntermediateComponent {
+                    component_type: InputMultiBitPin,
+                    position: c.position,
+                    inputs: vec![],
+                    outputs: vec![
+                        (Point::new(0, -1), 1, false),
+                        (Point::new(0, 1), 1, false)
+                    ],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::LevelInput3Pin => {
+                IntermediateComponent {
+                    component_type: InputMultiBitPin,
+                    position: c.position,
+                    inputs: vec![],
+                    outputs: vec![
+                        (Point::new(1, -2), 1, false),
+                        (Point::new(1, -1), 1, false),
+                        (Point::new(1, 0), 1, false)
+                    ],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::LevelInput4Pin => {
+                IntermediateComponent {
+                    component_type: InputMultiBitPin,
+                    position: c.position,
+                    inputs: vec![],
+                    outputs: vec![
+                        (Point::new(1, -2), 1, false),
+                        (Point::new(1, -1), 1, false),
+                        (Point::new(1, 0), 1, false),
+                        (Point::new(1, 1), 1, false)
+                    ],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::LevelInputConditions | ComponentType::Input8 | ComponentType::LevelInputCode | ComponentType::LevelInput8 => {
                 IntermediateComponent {
                     component_type: Input(c.custom_string.clone(), 8),
                     position: c.position,
@@ -757,20 +791,25 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64], o
                     bidirectional: vec![]
                 }
             }
-            ComponentType::Input64 => {panic!("Not Implemented")}
-            ComponentType::LevelInputCode => {panic!("Not Implemented")}
-            ComponentType::LevelInputArch => {panic!("Not Implemented")}
-            ComponentType::Output1 => {
+            ComponentType::Input64 => {
                 IntermediateComponent {
-                    component_type: Output(Rc::from(c.custom_string.clone()), 1),
+                    component_type: Input(c.custom_string.clone(), 64),
                     position: c.position,
-                    inputs: vec![(Point::new(-1, 0), 1)],
-                    outputs: vec![],
+                    inputs: vec![],
+                    outputs: vec![(Point::new(3, 0), 64, false)],
                     bidirectional: vec![]
                 }
             }
-            ComponentType::LevelOutput1Sum => {panic!("Not Implemented")}
-            ComponentType::LevelOutput1Car => {
+            ComponentType::LevelInputArch => {
+                IntermediateComponent {
+                    component_type: SwitchedInput(c.custom_string.clone(), 8),
+                    position: c.position,
+                    inputs: vec![(Point::new(0, 1), 1)],
+                    outputs: vec![(Point::new(1, 0), 8, true)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Output1 | ComponentType::LevelOutput1Sum | ComponentType::LevelOutput1Car | ComponentType::LevelOutput1 => {
                 IntermediateComponent {
                     component_type: Output(Rc::from(c.custom_string.clone()), 1),
                     position: c.position,
@@ -781,10 +820,46 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64], o
             }
             ComponentType::Deleted8 => {panic!("Not Implemented")}
             ComponentType::Deleted9 => {panic!("Not Implemented")}
-            ComponentType::LevelOutput2Pin => {panic!("Not Implemented")}
-            ComponentType::LevelOutput3Pin => {panic!("Not Implemented")}
-            ComponentType::LevelOutput4Pin => {panic!("Not Implemented")}
-            ComponentType::Output8 => {
+            ComponentType::LevelOutput2Pin => {
+                IntermediateComponent {
+                    component_type: OutputMultiBitPin,
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 1),
+                        (Point::new(-1, 0), 1)
+                    ],
+                    outputs: vec![],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::LevelOutput3Pin => {
+                IntermediateComponent {
+                    component_type: OutputMultiBitPin,
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -2), 1),
+                        (Point::new(-1, -1), 1),
+                        (Point::new(-1, 0), 1)
+                    ],
+                    outputs: vec![],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::LevelOutput4Pin => {
+                IntermediateComponent {
+                    component_type: OutputMultiBitPin,
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -2), 1),
+                        (Point::new(-1, -1), 1),
+                        (Point::new(-1, 0), 1),
+                        (Point::new(-1, 1), 1)
+                    ],
+                    outputs: vec![],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Output8 | ComponentType::LevelOutput8 => {
                 IntermediateComponent {
                     component_type: Output(Rc::from(c.custom_string.clone()), 8),
                     position: c.position,
@@ -802,12 +877,52 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64], o
                     bidirectional: vec![]
                 }
             }
-            ComponentType::LevelOutputArch => {panic!("Not Implemented")}
-            ComponentType::LevelOutputCounter => {panic!("Not Implemented")}
+            ComponentType::LevelOutputArch => {
+                IntermediateComponent {
+                    component_type: SwitchedOutput(Rc::from(c.custom_string.clone()), 8),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, 0), 8),
+                        (Point::new(0, 1), 1)
+                    ],
+                    outputs: vec![],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::LevelOutputCounter => {
+                IntermediateComponent {
+                    component_type: OutputMultiBitPin,
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 1),
+                        (Point::new(-1, 0), 1),
+                        (Point::new(-1, 1), 1)
+                    ],
+                    outputs: vec![],
+                    bidirectional: vec![]
+                }
+            }
             ComponentType::Deleted11 => {panic!("Not Implemented")}
-            ComponentType::Custom => {panic!("Not Implemented")}
+            ComponentType::Custom => {
+                println!("{:?}", c);
+                todo!("Not Implemented")
+            }
             ComponentType::VirtualCustom => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
-            ComponentType::Program => {panic!("Not Implemented")}
+            ComponentType::Program => {
+                println!("{:?}", c);
+                IntermediateComponent {
+                    component_type: Program(c.selected_programs[&c.setting_1].clone(), c.setting_2 as u8),
+                    position: c.position,
+                    inputs: vec![(Point::new(-13, -7), 16)],
+                    outputs: vec![
+                        (Point::new(13, -7), 64, false),
+                        (Point::new(13, -6), 64, false),
+                        (Point::new(13, -5), 64, false),
+                        (Point::new(13, -4), 64, false)
+                    ],
+                    bidirectional: vec![]
+                }
+            }
             ComponentType::DelayLine1 => {
                 IntermediateComponent {
                     component_type: DelayLine(1),
@@ -818,23 +933,203 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64], o
                 }
             }
             ComponentType::VirtualDelayLine1 => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
-            ComponentType::Console => {panic!("Not Implemented")}
-            ComponentType::Shl8 => {panic!("Not Implemented")}
-            ComponentType::Shr8 => {panic!("Not Implemented")}
-            ComponentType::Constant64 => {panic!("Not Implemented")}
-            ComponentType::Not64 => {panic!("Not Implemented")}
-            ComponentType::Or64 => {panic!("Not Implemented")}
-            ComponentType::And64 => {panic!("Not Implemented")}
-            ComponentType::Xor64 => {panic!("Not Implemented")}
-            ComponentType::Neg64 => {panic!("Not Implemented")}
-            ComponentType::Add64 => {panic!("Not Implemented")}
-            ComponentType::Mul64 => {panic!("Not Implemented")}
-            ComponentType::Equal64 => {panic!("Not Implemented")}
-            ComponentType::LessU64 => {panic!("Not Implemented")}
-            ComponentType::LessI64 => {panic!("Not Implemented")}
-            ComponentType::Shl64 => {panic!("Not Implemented")}
-            ComponentType::Shr64 => {panic!("Not Implemented")}
-            ComponentType::Mux64 => {panic!("Not Implemented")}
+            ComponentType::Console => {
+                todo!("Not Implemented")
+            }
+            ComponentType::Shl8 => {
+                IntermediateComponent {
+                    component_type: Shl(8),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 8),
+                        (Point::new(-1, 0), 3)
+                    ],
+                    outputs: vec![(Point::new(1, -1), 8, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Shr8 => {
+                IntermediateComponent {
+                    component_type: Shr(8),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 8),
+                        (Point::new(-1, 0), 3)
+                    ],
+                    outputs: vec![(Point::new(1, -1), 8, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Constant64 => {
+                IntermediateComponent {
+                    component_type: Constant(c.setting_1, 64),
+                    position: c.position,
+                    inputs: vec![],
+                    outputs: vec![(Point::new(3, 0), 64, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Not64 => {
+                IntermediateComponent {
+                    component_type: Not(64),
+                    position: c.position,
+                    inputs: vec![(Point::new(-1, 0), 64)],
+                    outputs: vec![(Point::new(1, 0), 64, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Or64 => {
+                IntermediateComponent {
+                    component_type: Or(64),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 64),
+                        (Point::new(-1, 0), 64)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 64, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::And64 => {
+                IntermediateComponent {
+                    component_type: And(64),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 64),
+                        (Point::new(-1, 0), 64)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 64, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Xor64 => {
+                IntermediateComponent {
+                    component_type: Xor(64),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 64),
+                        (Point::new(-1, 0), 64)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 64, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Neg64 => {
+                IntermediateComponent {
+                    component_type: Neg(64),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 64),
+                        (Point::new(-1, 0), 64)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 64, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Add64 => {
+                IntermediateComponent {
+                    component_type: Adder(64),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 1),
+                        (Point::new(-1, 0), 64),
+                        (Point::new(-1, 1), 64)
+                    ],
+                    outputs: vec![
+                        (Point::new(1, -1), 64, false),
+                        (Point::new(1, 0), 1, false)
+                    ],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Mul64 => {
+                IntermediateComponent {
+                    component_type: Mul(64),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 64),
+                        (Point::new(-1, 0), 64)
+                    ],
+                    outputs: vec![
+                        (Point::new(1, -1), 64, false),
+                        (Point::new(1, 0), 64, false)
+                    ],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Equal64 => {
+                IntermediateComponent {
+                    component_type: Equal(64),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 64),
+                        (Point::new(-1, 0), 64)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 1, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::LessU64 => {
+                IntermediateComponent {
+                    component_type: ULess(64),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 64),
+                        (Point::new(-1, 0), 64)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 1, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::LessI64 => {
+                IntermediateComponent {
+                    component_type: SLess(64),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 64),
+                        (Point::new(-1, 0), 64)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 1, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Shl64 => {
+                IntermediateComponent {
+                    component_type: Shl(64),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 64),
+                        (Point::new(-1, 0), 6)
+                    ],
+                    outputs: vec![(Point::new(1, -1), 64, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Shr64 => {
+                IntermediateComponent {
+                    component_type: Shr(64),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 64),
+                        (Point::new(-1, 0), 6)
+                    ],
+                    outputs: vec![(Point::new(1, -1), 64, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Mux64 => {
+                IntermediateComponent {
+                    component_type: Mux(64),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 1),
+                        (Point::new(-1, 0), 64),
+                        (Point::new(-1, 1), 64)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 64, false)],
+                    bidirectional: vec![]
+                }
+            }
             ComponentType::Switch64 => {
                 IntermediateComponent {
                     component_type: Switch(64),
@@ -868,10 +1163,36 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64], o
             ComponentType::AndOrLatch => {panic!("Not Implemented")}
             ComponentType::NandNandLatch => {panic!("Not Implemented")}
             ComponentType::NorNorLatch => {panic!("Not Implemented")}
-            ComponentType::LessU8 => {panic!("Not Implemented")}
-            ComponentType::LessI8 => {panic!("Not Implemented")}
-            ComponentType::DotMatrixDisplay => {panic!("Not Implemented")}
-            ComponentType::SegmentDisplay => {panic!("Not Implemented")}
+            ComponentType::LessU8 => {
+                IntermediateComponent {
+                    component_type: ULess(8),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 8),
+                        (Point::new(-1, 0), 8)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 1, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::LessI8 => {
+                IntermediateComponent {
+                    component_type: SLess(8),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 8),
+                        (Point::new(-1, 0), 8)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 1, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::DotMatrixDisplay => {
+                todo!("Not Implemented")
+            }
+            ComponentType::SegmentDisplay => {
+                todo!("Not Implemented")
+            }
             ComponentType::Input16 => {panic!("Not Implemented")}
             ComponentType::Input32 => {panic!("Not Implemented")}
             ComponentType::Output16 => {
@@ -1058,42 +1379,6 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64], o
             ComponentType::SpriteDisplay => {panic!("Not Implemented")}
             ComponentType::ConfigDelay => {panic!("Not Implemented")}
             ComponentType::Clock => {panic!("Not Implemented")}
-            ComponentType::LevelInput1 => {
-                IntermediateComponent {
-                    component_type: Input(c.custom_string.clone(), 1),
-                    position: c.position,
-                    inputs: vec![],
-                    outputs: vec![(Point::new(1, 0), 1, false)],
-                    bidirectional: vec![]
-                }
-            }
-            ComponentType::LevelInput8 => {
-                IntermediateComponent {
-                    component_type: Input(c.custom_string.clone(), 8),
-                    position: c.position,
-                    inputs: vec![],
-                    outputs: vec![(Point::new(1, 0), 8, false)],
-                    bidirectional: vec![]
-                }
-            }
-            ComponentType::LevelOutput1 => {
-                IntermediateComponent {
-                    component_type: Output(Rc::from(c.custom_string.clone()), 1),
-                    position: c.position,
-                    inputs: vec![(Point::new(-1, 0), 1)],
-                    outputs: vec![],
-                    bidirectional: vec![]
-                }
-            }
-            ComponentType::LevelOutput8 => {
-                IntermediateComponent {
-                    component_type: Output(Rc::from(c.custom_string.clone()), 8),
-                    position: c.position,
-                    inputs: vec![(Point::new(-1, 0), 8)],
-                    outputs: vec![],
-                    bidirectional: vec![]
-                }
-            }
             ComponentType::Ashr8 => {panic!("Not Implemented")}
             ComponentType::Ashr16 => {panic!("Not Implemented")}
             ComponentType::Ashr32 => {panic!("Not Implemented")}
