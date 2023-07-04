@@ -195,11 +195,29 @@ pub trait SimulatorIO {
     fn check_output(&mut self, tick: u64, outputs: &[Option<u64>]) -> bool;
 }
 
-pub struct DefaultSimIO;
+pub struct DefaultSimIO {
+    max_ticks: u64
+}
+
+impl DefaultSimIO {
+    pub fn new(max_ticks: u64) -> Self {
+        Self {
+            max_ticks
+        }
+    }
+}
+
+impl Default for DefaultSimIO {
+    fn default() -> Self {
+        DefaultSimIO {
+            max_ticks: u64::MAX
+        }
+    }
+}
 
 impl SimulatorIO for DefaultSimIO {
-    fn continue_simulation(&mut self, _tick: u64) -> bool {
-        true
+    fn continue_simulation(&mut self, tick: u64) -> bool {
+        tick < self.max_ticks
     }
 
     fn handle_input(&mut self, _tick: u64, _input_index: usize) -> u64 {

@@ -21,12 +21,14 @@ const VERBOSITY_ALL: u64 = 2;
 fn main() {
     let mut path = String::default();
     let mut options = Options::default();
+    let mut max_ticks = u64::MAX;
 
     {
         let mut schematic_path: Option<String> = None;
         let mut ap = ArgumentParser::new();
         ap.set_description("Turing Complete Circuit Simulator");
         ap.refer(&mut path).add_argument("path", Store, "The path to the circuit.data file.").required();
+        ap.refer(&mut max_ticks).add_option(&["-t", "--max-ticks"], Store, "Maximum ticks to run the simulation for");
         ap.refer(&mut schematic_path).add_option(&["-s", "--schematics"], StoreOption, "Custom path for looking for schematics when custom components are needed");
         ap.refer(&mut options.verbosity).add_option(&["-v", "--verbose"], IncrBy(1), "Display more verbose information");
         ap.parse_args_or_exit();
@@ -71,7 +73,7 @@ fn main() {
         1024
     };
 
-    let result = simulate(components, num_wires, latency_ram_delay, data_bytes_needed, true, &mut DefaultSimIO, &options);
+    let result = simulate(components, num_wires, latency_ram_delay, data_bytes_needed, true, &mut DefaultSimIO::new(max_ticks), &options);
     match result {
         Err(error) => {
             println!("{}", error);
