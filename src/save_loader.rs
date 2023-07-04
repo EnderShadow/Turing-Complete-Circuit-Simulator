@@ -1221,8 +1221,24 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64], o
             ComponentType::SegmentDisplay => {
                 todo!("Not Implemented")
             }
-            ComponentType::Input16 => {panic!("Not Implemented")}
-            ComponentType::Input32 => {panic!("Not Implemented")}
+            ComponentType::Input16 => {
+                IntermediateComponent {
+                    component_type: Input(c.custom_string.clone(), 16),
+                    position: c.position,
+                    inputs: vec![],
+                    outputs: vec![(Point::new(2, 0), 16, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Input32 => {
+                IntermediateComponent {
+                    component_type: Input(c.custom_string.clone(), 32),
+                    position: c.position,
+                    inputs: vec![],
+                    outputs: vec![(Point::new(2, 0), 32, false)],
+                    bidirectional: vec![]
+                }
+            }
             ComponentType::Output16 => {
                 IntermediateComponent {
                     component_type: Output(Rc::from(c.custom_string.clone()), 16),
@@ -1246,12 +1262,60 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64], o
             ComponentType::Deleted14 => {panic!("Not Implemented")}
             ComponentType::Deleted15 => {panic!("Not Implemented")}
             ComponentType::Deleted16 => {panic!("Not Implemented")}
-            ComponentType::Buffer8 => {panic!("Not Implemented")}
-            ComponentType::Buffer16 => {panic!("Not Implemented")}
-            ComponentType::Buffer32 => {panic!("Not Implemented")}
-            ComponentType::Buffer64 => {panic!("Not Implemented")}
-            ComponentType::ProbeWireBit => {panic!("Not Implemented")}
-            ComponentType::ProbeWireWord => {panic!("Not Implemented")}
+            ComponentType::Buffer8 => {
+                IntermediateComponent {
+                    component_type: Buffer(8),
+                    position: c.position,
+                    inputs: vec![(Point::new(-1, 0), 8)],
+                    outputs: vec![(Point::new(1, 0), 8, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Buffer16 => {
+                IntermediateComponent {
+                    component_type: Buffer(16),
+                    position: c.position,
+                    inputs: vec![(Point::new(-1, 0), 16)],
+                    outputs: vec![(Point::new(1, 0), 16, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Buffer32 => {
+                IntermediateComponent {
+                    component_type: Buffer(32),
+                    position: c.position,
+                    inputs: vec![(Point::new(-1, 0), 32)],
+                    outputs: vec![(Point::new(1, 0), 32, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Buffer64 => {
+                IntermediateComponent {
+                    component_type: Buffer(64),
+                    position: c.position,
+                    inputs: vec![(Point::new(-1, 0), 64)],
+                    outputs: vec![(Point::new(1, 0), 64, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::ProbeWireBit => {
+                IntermediateComponent {
+                    component_type: WireProbe(1),
+                    position: c.position,
+                    inputs: vec![(Point::new(0, -1), 1)],
+                    outputs: vec![],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::ProbeWireWord => {
+                IntermediateComponent {
+                    component_type: WireProbe(64),
+                    position: c.position,
+                    inputs: vec![(Point::new(0, -1), 64)],
+                    outputs: vec![],
+                    bidirectional: vec![]
+                }
+            }
             ComponentType::Switch1 => {
                 IntermediateComponent {
                     component_type: Switch(1),
@@ -1264,25 +1328,236 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64], o
                     bidirectional: vec![]
                 }
             }
-            ComponentType::Output1z => {panic!("Not Implemented")}
-            ComponentType::Output8z => {panic!("Not Implemented")}
-            ComponentType::Output16z => {panic!("Not Implemented")}
-            ComponentType::Output32z => {panic!("Not Implemented")}
-            ComponentType::Output64z => {panic!("Not Implemented")}
-            ComponentType::Constant16 => {panic!("Not Implemented")}
-            ComponentType::Not16 => {panic!("Not Implemented")}
-            ComponentType::Or16 => {panic!("Not Implemented")}
-            ComponentType::And16 => {panic!("Not Implemented")}
-            ComponentType::Xor16 => {panic!("Not Implemented")}
-            ComponentType::Neg16 => {panic!("Not Implemented")}
-            ComponentType::Add16 => {panic!("Not Implemented")}
-            ComponentType::Mul16 => {panic!("Not Implemented")}
-            ComponentType::Equal16 => {panic!("Not Implemented")}
-            ComponentType::LessU16 => {panic!("Not Implemented")}
-            ComponentType::LessI16 => {panic!("Not Implemented")}
-            ComponentType::Shl16 => {panic!("Not Implemented")}
-            ComponentType::Shr16 => {panic!("Not Implemented")}
-            ComponentType::Mux16 => {panic!("Not Implemented")}
+            ComponentType::Output1z => {
+                IntermediateComponent {
+                    component_type: SwitchedOutput(Rc::from(c.custom_string.clone()), 1),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(0, 1), 1),
+                        (Point::new(-1, 0), 1)
+                    ],
+                    outputs: vec![],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Output8z => {
+                IntermediateComponent {
+                    component_type: SwitchedOutput(Rc::from(c.custom_string.clone()), 8),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(0, 1), 1),
+                        (Point::new(-1, 0), 8)
+                    ],
+                    outputs: vec![],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Output16z => {
+                IntermediateComponent {
+                    component_type: SwitchedOutput(Rc::from(c.custom_string.clone()), 16),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(0, 2), 1),
+                        (Point::new(-2, 0), 16)
+                    ],
+                    outputs: vec![],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Output32z => {
+                IntermediateComponent {
+                    component_type: SwitchedOutput(Rc::from(c.custom_string.clone()), 32),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(0, 2), 1),
+                        (Point::new(-2, 0), 32)
+                    ],
+                    outputs: vec![],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Output64z => {
+                IntermediateComponent {
+                    component_type: SwitchedOutput(Rc::from(c.custom_string.clone()), 64),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(0, 2), 1),
+                        (Point::new(-3, 0), 64)
+                    ],
+                    outputs: vec![],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Constant16 => {
+                IntermediateComponent {
+                    component_type: Constant(c.setting_1, 16),
+                    position: c.position,
+                    inputs: vec![],
+                    outputs: vec![(Point::new(2, 0), 16, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Not16 => {
+                IntermediateComponent {
+                    component_type: Not(16),
+                    position: c.position,
+                    inputs: vec![(Point::new(-1, 0), 16)],
+                    outputs: vec![(Point::new(1, 0), 16, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Or16 => {
+                IntermediateComponent {
+                    component_type: Or(16),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 16),
+                        (Point::new(-1, 0), 16)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 16, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::And16 => {
+                IntermediateComponent {
+                    component_type: And(16),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 16),
+                        (Point::new(-1, 0), 16)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 16, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Xor16 => {
+                IntermediateComponent {
+                    component_type: Xor(16),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 16),
+                        (Point::new(-1, 0), 16)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 16, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Neg16 => {
+                IntermediateComponent {
+                    component_type: Neg(16),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 16),
+                        (Point::new(-1, 0), 16)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 16, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Add16 => {
+                IntermediateComponent {
+                    component_type: Adder(16),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 1),
+                        (Point::new(-1, 0), 16),
+                        (Point::new(-1, 1), 16)
+                    ],
+                    outputs: vec![
+                        (Point::new(1, -1), 16, false),
+                        (Point::new(1, 0), 1, false)
+                    ],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Mul16 => {
+                IntermediateComponent {
+                    component_type: Mul(16),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 16),
+                        (Point::new(-1, 0), 16)
+                    ],
+                    outputs: vec![
+                        (Point::new(1, -1), 16, false),
+                        (Point::new(1, 0), 16, false)
+                    ],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Equal16 => {
+                IntermediateComponent {
+                    component_type: Equal(16),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 16),
+                        (Point::new(-1, 0), 16)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 1, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::LessU16 => {
+                IntermediateComponent {
+                    component_type: ULess(16),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 16),
+                        (Point::new(-1, 0), 16)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 1, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::LessI16 => {
+                IntermediateComponent {
+                    component_type: SLess(16),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 16),
+                        (Point::new(-1, 0), 16)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 1, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Shl16 => {
+                IntermediateComponent {
+                    component_type: Shl(16),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 16),
+                        (Point::new(-1, 0), 4)
+                    ],
+                    outputs: vec![(Point::new(1, -1), 16, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Shr16 => {
+                IntermediateComponent {
+                    component_type: Shr(16),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 16),
+                        (Point::new(-1, 0), 4)
+                    ],
+                    outputs: vec![(Point::new(1, -1), 16, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Mux16 => {
+                IntermediateComponent {
+                    component_type: Mux(16),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 1),
+                        (Point::new(-1, 0), 16),
+                        (Point::new(-1, 1), 16)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 16, false)],
+                    bidirectional: vec![]
+                }
+            }
             ComponentType::Switch16 => {
                 IntermediateComponent {
                     component_type: Switch(16),
