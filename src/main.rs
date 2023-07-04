@@ -1,5 +1,6 @@
+use std::path::{Path, PathBuf};
 use crate::simulator::{DefaultSimIO, simulate};
-use argparse::{ArgumentParser, IncrBy, Store};
+use argparse::{ArgumentParser, IncrBy, Store, StoreOption};
 use crate::save_loader::read_from_save;
 
 mod save_parser;
@@ -9,6 +10,7 @@ mod save_loader;
 
 #[derive(Default)]
 pub struct Options {
+    schematic_path: PathBuf,
     verbosity: u64
 }
 
@@ -21,11 +23,38 @@ fn main() {
     let mut options = Options::default();
 
     {
+        let mut schematic_path: Option<String> = None;
         let mut ap = ArgumentParser::new();
         ap.set_description("Turing Complete Circuit Simulator");
         ap.refer(&mut path).add_argument("path", Store, "The path to the circuit.data file.").required();
+        ap.refer(&mut schematic_path).add_option(&["-s", "--schematics"], StoreOption, "Custom path for looking for schematics when custom components are needed");
         ap.refer(&mut options.verbosity).add_option(&["-v", "--verbose"], IncrBy(1), "Display more verbose information");
         ap.parse_args_or_exit();
+
+        // Explicitly dropping here removes the mutable references
+        drop(ap);
+
+        options.schematic_path = if let Some(schem_path) = schematic_path {
+            PathBuf::from(schem_path)
+        } else {
+            let mut directory = dirs::data_dir().unwrap_or_else(|| PathBuf::from("."));
+            directory.push("godot");
+            if !Path::exists(directory.as_path()) {
+                directory.pop();
+                directory.push("Godot");
+                if !Path::exists(directory.as_path()) {
+                    panic!("Cannot find Turing Complete on this system. Use the -s parameter to specify the schematic folder location");
+                }
+            }
+            directory.push("app_userdata");
+            directory.push("Turing Complete");
+            directory.push("schematics");
+            if !Path::exists(directory.as_path()) {
+                panic!("Cannot find Turing Complete on this system. Use the -s parameter to specify the schematic folder location");
+            }
+
+            directory
+        }
     }
 
     let (mut components, num_wires, data_bytes_needed, delay) = read_from_save(&path, &options);
@@ -55,6 +84,7 @@ fn main() {
 
 #[cfg(test)]
 mod tests {
+    use std::path::PathBuf;
     use crate::{Options, VERBOSITY_ALL, VERBOSITY_LOW};
     use crate::save_loader::read_from_save;
     use crate::simulator::{simulate, SimulatorIO};
@@ -132,6 +162,7 @@ mod tests {
     #[test]
     fn test_byte_adder_naive_ripple() {
         let options = Options {
+            schematic_path: PathBuf::default(),
             verbosity: TEST_VERBOSITY
         };
 
@@ -166,6 +197,7 @@ mod tests {
     #[test]
     fn test_byte_adder_64_20() {
         let options = Options {
+            schematic_path: PathBuf::default(),
             verbosity: TEST_VERBOSITY
         };
 
@@ -200,6 +232,7 @@ mod tests {
     #[test]
     fn test_5bit_decoder() {
         let options = Options {
+            schematic_path: PathBuf::default(),
             verbosity: TEST_VERBOSITY
         };
 

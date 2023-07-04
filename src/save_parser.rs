@@ -4,6 +4,7 @@ use std::collections::{HashSet, HashMap};
 use std::ops::{Add, Sub, Mul};
 use once_cell::sync::Lazy;
 use std::convert::TryInto;
+use std::path::Path;
 use crate::versions::{
     v0,
     v1,
@@ -635,8 +636,8 @@ fn get_wire(input: &[u8], i: &mut usize) -> Option<Wire> {
     })
 }
 
-pub fn parse_save(file_path: &str) -> Result<SaveFile, String> {
-    let data = fs::read(file_path).unwrap_or_else(|_| panic!("Failed to load file: {}", file_path));
+pub fn parse_save(file_path: &Path) -> Result<SaveFile, String> {
+    let data = fs::read(file_path).unwrap_or_else(|_| panic!("Failed to load file: {}", file_path.to_string_lossy()));
     let mut i: usize = 0;
     let version = get_u8(&data, &mut i).ok_or("Failed to get save version")?;
     match version {

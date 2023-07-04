@@ -1,14 +1,27 @@
 use std::collections::{HashMap, HashSet, VecDeque};
 use std::ops::Not;
+use std::path::PathBuf;
 use std::rc::Rc;
+use walkdir::WalkDir;
 use crate::{Options, VERBOSITY_ALL};
-use crate::save_parser::{parse_save, Point, Wire, Component as SaveComponent, ComponentType};
+use crate::save_parser::{parse_save, Point, Wire, Component as SaveComponent, ComponentType, SaveFile};
 use crate::simulator::{Component, IntermediateComponent};
 use crate::simulator::ComponentType::*;
 
 pub fn read_from_save(path: &str, options: &Options) -> (Vec<Component>, usize, usize, u64) {
-    let save = parse_save(path);
+    let save = parse_save(PathBuf::from(path).as_path());
     let save = save.unwrap();
+
+    let mut all_components = if !save.dependencies.is_empty() {
+        read_all_circuit_data_files(options)
+    } else {
+        HashMap::default()
+    };
+
+    let save_id = save.save_id;
+    all_components.insert(save.save_id, save);
+    let save = all_components.get(&save_id).unwrap();
+
     if options.verbosity >= VERBOSITY_ALL {
         for c in &*save.components {
             println!("{:?}", c.component_type)
@@ -88,6 +101,21 @@ pub fn read_from_save(path: &str, options: &Options) -> (Vec<Component>, usize, 
     }).collect();
 
     (components, wire_clusters.len(), offset, save.delay)
+}
+
+fn read_all_circuit_data_files(options: &Options) -> HashMap<u64, SaveFile> {
+    let mut save_files = HashMap::new();
+
+    let path = options.schematic_path.as_path();
+    let walker = WalkDir::new(path);
+    for entry in walker.into_iter().filter_entry(|e| e.file_type().is_file() && e.file_name().to_string_lossy() == "circuit.data").flatten() {
+        let save_file = parse_save(entry.path());
+        if let Ok(save_file) = save_file {
+            save_files.insert(save_file.save_id, save_file);
+        }
+    }
+
+    save_files
 }
 
 fn merge_wires(wire_segments: &Vec<Wire>, options: &Options) -> Vec<HashSet<Point>> {
