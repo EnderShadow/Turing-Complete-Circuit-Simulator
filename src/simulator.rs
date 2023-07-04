@@ -811,8 +811,16 @@ pub fn simulate<T: SimulatorIO>(components: Vec<Component>, num_wires: usize, la
                     println!("{}", message);
                     return Ok(iteration)
                 }
-                ComponentType::BitIndexer(_) => {}
-                ComponentType::ByteIndexer(_) => {}
+                ComponentType::BitIndexer(index) => {
+                    let in_value = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), 64);
+                    let out_value = in_value >> index;
+                    c.outputs[0].0.map(|x| {write_wire(&mut wires, x, 1, out_value, 1)}).unwrap_or(Ok(()))?;
+                }
+                ComponentType::ByteIndexer(index) => {
+                    let in_value = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), 64);
+                    let out_value = in_value >> (index << 3);
+                    c.outputs[0].0.map(|x| {write_wire(&mut wires, x, 8, out_value, 0xFF)}).unwrap_or(Ok(()))?;
+                }
                 ComponentType::Program(_, _) => {}
                 ComponentType::LevelProgram(_) => {}
                 ComponentType::HDD(_) => {}
