@@ -191,7 +191,7 @@ impl IntermediateComponent {
 
 pub trait SimulatorIO {
     fn continue_simulation(&mut self, tick: u64) -> bool;
-    fn handle_input(&mut self, tick: u64, input_index: usize) -> u64;
+    fn handle_input(&mut self, tick: u64, input_index: usize) -> Option<u64>;
     fn check_output(&mut self, tick: u64, outputs: &[Option<u64>]) -> bool;
 }
 
@@ -220,8 +220,8 @@ impl SimulatorIO for DefaultSimIO {
         tick < self.max_ticks
     }
 
-    fn handle_input(&mut self, _tick: u64, _input_index: usize) -> u64 {
-        0
+    fn handle_input(&mut self, _tick: u64, _input_index: usize) -> Option<u64> {
+        Some(0)
     }
 
     fn check_output(&mut self, _tick: u64, _outputs: &[Option<u64>]) -> bool {
@@ -414,19 +414,25 @@ pub fn simulate<T: SimulatorIO>(components: Vec<Component>, num_wires: usize, la
                 ComponentType::Nop => {}
                 ComponentType::Input(name, x) => {
                     let value = sim_io_handler.handle_input(iteration, c.numeric_id);
-                    c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, value, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
+                    if let Some(value) = value {
+                        c.outputs[0].0.map(|i| { write_wire(&mut wires, i, *x, value, u64::MAX >> (64 - *x)) }).unwrap_or(Ok(()))?;
+                    }
                 }
                 ComponentType::SwitchedInput(name, x) => {
-                    let value = sim_io_handler.handle_input(iteration, c.numeric_id);
                     let enable = read_wire1(&wires, c.inputs[0].0.unwrap_or(num_wires));
                     if enable {
-                        c.outputs[0].0.map(|i| {write_wire(&mut wires, i, *x, value, u64::MAX >> (64 - *x))}).unwrap_or(Ok(()))?;
+                        let value = sim_io_handler.handle_input(iteration, c.numeric_id);
+                        if let Some(value) = value {
+                            c.outputs[0].0.map(|i| { write_wire(&mut wires, i, *x, value, u64::MAX >> (64 - *x)) }).unwrap_or(Ok(()))?;
+                        }
                     }
                 }
                 ComponentType::InputMultiBitPin => {
-                    let mut value = sim_io_handler.handle_input(iteration, c.numeric_id);
-                    for (idx, output) in c.outputs.iter().enumerate() {
-                        output.0.map(|i| {write_wire(&mut wires, i, 1, value >> idx, 1)}).unwrap_or(Ok(()))?;
+                    let value = sim_io_handler.handle_input(iteration, c.numeric_id);
+                    if let Some(value) = value {
+                        for (idx, output) in c.outputs.iter().enumerate() {
+                            output.0.map(|i| { write_wire(&mut wires, i, 1, value >> idx, 1) }).unwrap_or(Ok(()))?;
+                        }
                     }
                 }
                 ComponentType::Output(name, x) => {
