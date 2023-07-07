@@ -100,8 +100,8 @@ mod tests {
             tick < 1 << 17
         }
 
-        fn handle_input(&mut self, tick: u64, input_index: usize) -> u64 {
-            match input_index {
+        fn handle_input(&mut self, tick: u64, input_index: usize) -> Option<u64> {
+            Some(match input_index {
                 0 => {
                     tick & 0xFF
                 },
@@ -114,13 +114,13 @@ mod tests {
                 _ => {
                     panic!("Unexpected Input Node");
                 }
-            }
+            })
         }
 
         fn check_output(&mut self, tick: u64, outputs: &[Option<u64>]) -> bool {
-            let input_a = self.handle_input(tick, 0);
-            let input_b = self.handle_input(tick, 1);
-            let carry_in = self.handle_input(tick, 2);
+            let input_a = self.handle_input(tick, 0).unwrap();
+            let input_b = self.handle_input(tick, 1).unwrap();
+            let carry_in = self.handle_input(tick, 2).unwrap();
             let expected_sum = (input_a + input_b + carry_in) & 0xFF;
             let expected_carry = (input_a + input_b + carry_in) >> 8;
             let actual_sum = outputs[0].unwrap_or(u64::MAX);
@@ -137,8 +137,8 @@ mod tests {
             tick < 64
         }
 
-        fn handle_input(&mut self, tick: u64, input_index: usize) -> u64 {
-            match input_index {
+        fn handle_input(&mut self, tick: u64, input_index: usize) -> Option<u64> {
+            Some(match input_index {
                 0 => {
                     tick & 0x1F
                 },
@@ -148,12 +148,12 @@ mod tests {
                 _ => {
                     panic!("Unexpected Input Node");
                 }
-            }
+            })
         }
 
         fn check_output(&mut self, tick: u64, outputs: &[Option<u64>]) -> bool {
-            let input = self.handle_input(tick, 0);
-            let disable = self.handle_input(tick, 1);
+            let input = self.handle_input(tick, 0).unwrap();
+            let disable = self.handle_input(tick, 1).unwrap();
             let expected_output = if disable != 0 {0u64} else {1 << input};
             let actual_output = outputs[0];
 
