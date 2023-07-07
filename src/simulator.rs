@@ -289,52 +289,68 @@ fn dag_sort(mut remaining_components: Vec<Component>) -> Result<Vec<Component>, 
     Ok(sorted)
 }
 
-fn read_wire(wires: &[(u64, u64)], index: usize, size: u8) -> u64 {
-    let (wire, driven) = wires[index];
-    wire & driven & (u64::MAX >> (64 - size))
+#[derive(Clone, Copy, Debug)]
+struct Wire {
+    data: u64,
+    driven_mask: u64
 }
 
-fn read_wire1(wires: &[(u64, u64)], index: usize) -> bool {
-    let (wire, driven) = wires[index];
-    (wire & driven) & 1 != 0
+impl Wire {
+    fn new(value: u64, driven_mask: u64) -> Self {
+        Wire { data: value, driven_mask}
+    }
+
+    fn value(&self) -> u64 {
+        self.data & self.driven_mask
+    }
 }
 
-fn read_wire8(wires: &[(u64, u64)], index: usize) -> u8 {
-    let (wire, driven) = wires[index];
-    (wire & driven) as u8
+fn read_wire(wires: &[Wire], index: usize, size: u8) -> u64 {
+    wires[index].value() & (u64::MAX >> (64 - size))
 }
 
-fn write_wire(wires: &mut [(u64, u64)], index: usize, size: u8, new_value: u64, new_driven: u64) -> Result<(), String>{
-    let (wire, driven) = wires[index];
+fn read_wire1(wires: &[Wire], index: usize) -> bool {
+    wires[index].value() & 1 != 0
+}
+
+fn read_wire8(wires: &[Wire], index: usize) -> u8 {
+    wires[index].value() as u8
+}
+
+fn write_wire(wires: &mut [Wire], index: usize, size: u8, new_value: u64, new_driven: u64) -> Result<(), String>{
+    let wire = &mut wires[index];
+    let data = &mut wire.data;
+    let driven = &mut wire.driven_mask;
     let size_mask = u64::MAX >> (64 - size);
     let new_value = new_value & size_mask;
     let new_driven = new_driven & size_mask;
-    let conflict_mask = driven & new_driven;
-    if wire & conflict_mask != new_value & conflict_mask {
+    let conflict_mask = *driven & new_driven;
+    if *data & conflict_mask != new_value & conflict_mask {
         Err("Value conflict".to_string())
     } else {
-        wires[index] = ((wire & driven) | (new_value & new_driven), driven | new_driven);
+        wire.data = (*data & *driven) | (new_value & new_driven);
+        wire.driven_mask = *driven | new_driven;
         Ok(())
     }
 }
 
-fn fast_read_wire(wires: &[(u64, u64)], index: usize, size: u8) -> u64 {
-    wires[index].0 & (u64::MAX >> (64 - size))
+fn fast_read_wire(wires: &[Wire], index: usize, size: u8) -> u64 {
+    wires[index].data & (u64::MAX >> (64 - size))
 }
 
-fn fast_read_wire1(wires: &[(u64, u64)], index: usize) -> bool {
-    wires[index].0 & 1 != 0
+fn fast_read_wire1(wires: &[Wire], index: usize) -> bool {
+    wires[index].data & 1 != 0
 }
 
-fn fast_read_wire8(wires: &[(u64, u64)], index: usize) -> u8 {
-    wires[index].0 as u8
+fn fast_read_wire8(wires: &[Wire], index: usize) -> u8 {
+    wires[index].data as u8
 }
 
-fn fast_write_wire(wires: &mut [(u64, u64)], index: usize, size: u8, new_value: u64, _new_driven: u64) -> Result<(), String>{
-    let (wire, _) = wires[index];
+fn fast_write_wire(wires: &mut [Wire], index: usize, size: u8, new_value: u64, _new_driven: u64) -> Result<(), String>{
+    let wire = &mut wires[index].data;
     let size_mask = u64::MAX >> (64 - size);
     let new_value = new_value & size_mask;
-    wires[index] = (wire | new_value, 0);
+    *wire |= new_value;
     Ok(())
 }
 
@@ -382,7 +398,7 @@ pub fn simulate<T: SimulatorIO>(components: Vec<Component>, num_wires: usize, la
     }
 
     let mut iteration = 0u64;
-    let mut wires = vec![(0, 0); num_wires + 1];
+    let mut wires = vec![Wire::new(0, 0); num_wires + 1];
     let mut tick_outputs: Vec<Option<u64>> = vec![None; num_outputs];
 
     let end = Instant::now();
@@ -846,7 +862,7 @@ pub fn simulate<T: SimulatorIO>(components: Vec<Component>, num_wires: usize, la
             return Err(format!("Failed after {} ticks.", iteration))
         }
 
-        wires.fill((0, 0));
+        wires.fill(Wire::new(0, 0));
     }
 
     let end = Instant::now();
