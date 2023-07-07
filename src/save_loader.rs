@@ -1046,10 +1046,7 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64], o
                 IntermediateComponent {
                     component_type: Neg(64),
                     position: c.position,
-                    inputs: vec![
-                        (Point::new(-1, -1), 64),
-                        (Point::new(-1, 0), 64)
-                    ],
+                    inputs: vec![(Point::new(-1, 0), 64)],
                     outputs: vec![(Point::new(1, 0), 64, false)],
                     bidirectional: vec![]
                 }
@@ -1446,10 +1443,7 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64], o
                 IntermediateComponent {
                     component_type: Neg(16),
                     position: c.position,
-                    inputs: vec![
-                        (Point::new(-1, -1), 16),
-                        (Point::new(-1, 0), 16)
-                    ],
+                    inputs: vec![(Point::new(-1, 0), 16)],
                     outputs: vec![(Point::new(1, 0), 16, false)],
                     bidirectional: vec![]
                 }
