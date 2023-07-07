@@ -1564,26 +1564,220 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64], o
                     bidirectional: vec![]
                 }
             }
-            ComponentType::Splitter16 => {panic!("Not Implemented")}
-            ComponentType::Maker16 => {panic!("Not Implemented")}
-            ComponentType::Register16 => {panic!("Not Implemented")}
+            ComponentType::Splitter16 => {
+                IntermediateComponent {
+                    component_type: ByteSplitter2,
+                    position: c.position,
+                    inputs: vec![(Point::new(-1, 0), 16)],
+                    outputs: vec![
+                        (Point::new(1, -1), 8, false),
+                        (Point::new(1, 0), 8, false)
+                    ],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Maker16 => {
+                IntermediateComponent {
+                    component_type: ByteMaker2,
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 8),
+                        (Point::new(-1, 0), 8)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 16, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Register16 => {
+                IntermediateComponent {
+                    component_type: Register(16),
+                    position: c.position,
+                    inputs: vec![(Point::new(-2, -1), 1)],
+                    outputs: vec![(Point::new(2, 0), 16, true)],
+                    bidirectional: vec![]
+                }
+            }
             ComponentType::VirtualRegister16 => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
-            ComponentType::Counter16 => {panic!("Not Implemented")}
+            ComponentType::Counter16 => {
+                IntermediateComponent {
+                    component_type: Counter(c.setting_1, 16),
+                    position: c.position,
+                    inputs: vec![],
+                    outputs: vec![(Point::new(2, 0), 16, false)],
+                    bidirectional: vec![]
+                }
+            }
             ComponentType::VirtualCounter16 => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
-            ComponentType::Constant32 => {panic!("Not Implemented")}
-            ComponentType::Not32 => {panic!("Not Implemented")}
-            ComponentType::Or32 => {panic!("Not Implemented")}
-            ComponentType::And32 => {panic!("Not Implemented")}
-            ComponentType::Xor32 => {panic!("Not Implemented")}
-            ComponentType::Neg32 => {panic!("Not Implemented")}
-            ComponentType::Add32 => {panic!("Not Implemented")}
-            ComponentType::Mul32 => {panic!("Not Implemented")}
-            ComponentType::Equal32 => {panic!("Not Implemented")}
-            ComponentType::LessU32 => {panic!("Not Implemented")}
-            ComponentType::LessI32 => {panic!("Not Implemented")}
-            ComponentType::Shl32 => {panic!("Not Implemented")}
-            ComponentType::Shr32 => {panic!("Not Implemented")}
-            ComponentType::Mux32 => {panic!("Not Implemented")}
+            ComponentType::Constant32 => {
+                IntermediateComponent {
+                    component_type: Constant(c.setting_1, 32),
+                    position: c.position,
+                    inputs: vec![],
+                    outputs: vec![(Point::new(2, 0), 32, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Not32 => {
+                IntermediateComponent {
+                    component_type: Not(32),
+                    position: c.position,
+                    inputs: vec![(Point::new(-1, 0), 32)],
+                    outputs: vec![(Point::new(1, 0), 32, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Or32 => {
+                IntermediateComponent {
+                    component_type: Or(32),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 32),
+                        (Point::new(-1, 0), 32)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 32, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::And32 => {
+                IntermediateComponent {
+                    component_type: And(32),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 32),
+                        (Point::new(-1, 0), 32)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 32, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Xor32 => {
+                IntermediateComponent {
+                    component_type: Xor(32),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 32),
+                        (Point::new(-1, 0), 32)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 32, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Neg32 => {
+                IntermediateComponent {
+                    component_type: Neg(32),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 32),
+                        (Point::new(-1, 0), 32)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 32, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Add32 => {
+                IntermediateComponent {
+                    component_type: Adder(32),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 1),
+                        (Point::new(-1, 0), 32),
+                        (Point::new(-1, 1), 32)
+                    ],
+                    outputs: vec![
+                        (Point::new(1, -1), 32, false),
+                        (Point::new(1, 0), 1, false)
+                    ],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Mul32 => {
+                IntermediateComponent {
+                    component_type: Mul(32),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 32),
+                        (Point::new(-1, 0), 32)
+                    ],
+                    outputs: vec![
+                        (Point::new(1, -1), 32, false),
+                        (Point::new(1, 0), 32, false)
+                    ],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Equal32 => {
+                IntermediateComponent {
+                    component_type: Equal(32),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 32),
+                        (Point::new(-1, 0), 32)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 1, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::LessU32 => {
+                IntermediateComponent {
+                    component_type: ULess(32),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 32),
+                        (Point::new(-1, 0), 32)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 1, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::LessI32 => {
+                IntermediateComponent {
+                    component_type: SLess(32),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 32),
+                        (Point::new(-1, 0), 32)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 1, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Shl32 => {
+                IntermediateComponent {
+                    component_type: Shl(32),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 32),
+                        (Point::new(-1, 0), 5)
+                    ],
+                    outputs: vec![(Point::new(1, -1), 32, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Shr32 => {
+                IntermediateComponent {
+                    component_type: Shr(32),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 32),
+                        (Point::new(-1, 0), 5)
+                    ],
+                    outputs: vec![(Point::new(1, -1), 32, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Mux32 => {
+                IntermediateComponent {
+                    component_type: Mux(32),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 1),
+                        (Point::new(-1, 0), 32),
+                        (Point::new(-1, 1), 32)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 32, false)],
+                    bidirectional: vec![]
+                }
+            }
             ComponentType::Switch32 => {
                 IntermediateComponent {
                     component_type: Switch(32),
@@ -1596,7 +1790,20 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64], o
                     bidirectional: vec![]
                 }
             }
-            ComponentType::Splitter32 => {panic!("Not Implemented")}
+            ComponentType::Splitter32 => {
+                IntermediateComponent {
+                    component_type: ByteSplitter4,
+                    position: c.position,
+                    inputs: vec![(Point::new(-1, 0), 32)],
+                    outputs: vec![
+                        (Point::new(1, -1), 8, false),
+                        (Point::new(1, 0), 8, false),
+                        (Point::new(1, 1), 8, false),
+                        (Point::new(1, 2), 8, false)
+                    ],
+                    bidirectional: vec![]
+                }
+            }
             ComponentType::Maker32 => {
                 IntermediateComponent {
                     component_type: ByteMaker4,
@@ -1611,9 +1818,25 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64], o
                     bidirectional: vec![]
                 }
             }
-            ComponentType::Register32 => {panic!("Not Implemented")}
+            ComponentType::Register32 => {
+                IntermediateComponent {
+                    component_type: Register(32),
+                    position: c.position,
+                    inputs: vec![(Point::new(-2, -1), 1)],
+                    outputs: vec![(Point::new(2, 0), 32, true)],
+                    bidirectional: vec![]
+                }
+            }
             ComponentType::VirtualRegister32 => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
-            ComponentType::Counter32 => {panic!("Not Implemented")}
+            ComponentType::Counter32 => {
+                IntermediateComponent {
+                    component_type: Counter(c.setting_1, 32),
+                    position: c.position,
+                    inputs: vec![],
+                    outputs: vec![(Point::new(2, 0), 32, false)],
+                    bidirectional: vec![]
+                }
+            }
             ComponentType::VirtualCounter32 => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::LevelOutput8z => {panic!("Not Implemented")}
             ComponentType::Nand8 => {panic!("Not Implemented")}
@@ -1727,8 +1950,8 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64], o
                 HDD(_) => {
                     panic!("Unimplemented!");
                 }
-                c_type => {
-                    panic!("Unhandled component with virtual components {:?}", c_type);
+                component_type => {
+                    panic!("Unhandled component with virtual components {:?}", component_type);
                 }
             }
         }
