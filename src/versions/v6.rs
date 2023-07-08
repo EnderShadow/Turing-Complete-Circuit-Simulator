@@ -6,27 +6,24 @@ pub fn parse(input: &[u8], i: &mut usize) -> Option<SaveFile> {
     let input = tetsy_snappy::decompress(&input[*i..input.len()]).ok()?;
     let mut i = 0;
 
-    Some(SaveFile {
-        version: 6,
-        save_id: get_u64(&input, &mut i)?,
-        hub_id: get_u32(&input, &mut i)?,
-        gate: get_u64(&input, &mut i)?,
-        delay: get_u64(&input, &mut i)?,
-        menu_visible: get_bool(&input, &mut i)?,
-        clock_speed: get_u32(&input, &mut i)?,
-        dependencies: get_vec_u64(&input, &mut i)?,
-        description: get_string(&input, &mut i)?,
-        camera_position: get_point(&input, &mut i)?,
-        synced: get_sync_state(&input, &mut i)?,
-        campaign_bound: get_bool(&input, &mut i)?,
-        player_data: {
-            get_u16(&input, &mut i);
-            get_vec_u8(&input, &mut i, false)
-        }?,
-        hub_description: get_string(&input, &mut i)?,
-        components: get_components(&input, &mut i)?,
-        wires: get_wires(&input, &mut i)?
-    })
+    let version = 6;
+    let save_id = get_u64(&input, &mut i)?;
+    let hub_id = get_u32(&input, &mut i)?;
+    let gate = get_u64(&input, &mut i)?;
+    let delay = get_u64(&input, &mut i)?;
+    let menu_visible = get_bool(&input, &mut i)?;
+    let clock_speed = get_u32(&input, &mut i)?;
+    let dependencies = get_vec_u64(&input, &mut i)?;
+    let description = get_string(&input, &mut i)?;
+    let camera_position = get_point(&input, &mut i)?;
+    let synced = get_sync_state(&input, &mut i)?;
+    let campaign_bound = get_bool(&input, &mut i)?;
+    get_u16(&input, &mut i)?;
+    let player_data = get_vec_u8(&input, &mut i, false)?;
+    let hub_description = get_string(&input, &mut i)?;
+
+    Some(SaveFile::new(version, save_id, hub_id, hub_description, gate, delay, menu_visible, clock_speed, dependencies, description, camera_position, player_data, synced, campaign_bound,
+                       get_components, get_wires, input, i))
 }
 
 fn get_components(input: &[u8], i: &mut usize) -> Option<Vec<Component>> {

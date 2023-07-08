@@ -4,7 +4,10 @@ use std::collections::{HashSet, HashMap};
 use std::ops::{Add, Sub, Mul};
 use once_cell::sync::Lazy;
 use std::convert::TryInto;
+use std::fmt::{Debug, Formatter};
+use std::marker::PhantomData;
 use std::path::Path;
+use derivative::Derivative;
 use crate::versions::{
     v0,
     v1,
@@ -424,11 +427,15 @@ pub struct Wire {
     pub comment: String
 }
 
-#[derive(Debug)]
-pub struct SaveFile {
+pub struct HeadersOnly;
+pub struct AllData;
+
+#[derive(Derivative)]
+#[derivative(Debug)]
+pub struct SaveFile<T = HeadersOnly> {
     pub version: u8,
-    pub components: Vec<Component>,
-    pub wires: Vec<Wire>,
+    components: Vec<Component>,
+    wires: Vec<Wire>,
     pub save_id: u64,
     pub hub_id: u32,
     pub hub_description: String,
@@ -441,7 +448,92 @@ pub struct SaveFile {
     pub camera_position: Point,
     pub player_data: Vec<u8>,
     pub synced: SyncState,
-    pub campaign_bound: bool
+    pub campaign_bound: bool,
+    data: Vec<u8>,
+    data_offset: usize,
+    #[derivative(Debug="ignore")]
+    component_fn: fn(&[u8], &mut usize) -> Option<Vec<Component>>,
+    #[derivative(Debug="ignore")]
+    wire_fn: fn(&[u8], &mut usize) -> Option<Vec<Wire>>,
+    _type: PhantomData<T>
+}
+
+impl SaveFile {
+    pub fn new(version: u8, save_id: u64, hub_id: u32, hub_description: String, gate: u64, delay: u64, menu_visible: bool, clock_speed: u32, dependencies: Vec<u64>, description: String, camera_position: Point,
+    player_data: Vec<u8>, synced: SyncState, campaign_bound: bool, component_fn: fn(&[u8], &mut usize) -> Option<Vec<Component>>, wire_fn: fn(&[u8], &mut usize) -> Option<Vec<Wire>>, data: Vec<u8>, data_offset: usize) -> SaveFile<HeadersOnly> {
+        SaveFile {
+            version,
+            save_id,
+            hub_id,
+            hub_description,
+            gate,
+            delay,
+            menu_visible,
+            clock_speed,
+            dependencies,
+            description,
+            camera_position,
+            player_data,
+            synced,
+            campaign_bound,
+            components: Vec::default(),
+            wires: Vec::default(),
+            data,
+            data_offset,
+            component_fn,
+            wire_fn,
+            _type: PhantomData::<HeadersOnly>
+        }
+    }
+}
+
+impl SaveFile<HeadersOnly> {
+    pub fn parse_remaining(mut self) -> Option<SaveFile<AllData>> {
+        let components = (self.component_fn)(&self.data, &mut self.data_offset)?;
+        let wires = (self.wire_fn)(&self.data, &mut self.data_offset)?;
+
+        Some(SaveFile {
+            version: self.version,
+            components,
+            wires,
+            save_id: self.save_id,
+            hub_id: self.hub_id,
+            hub_description: self.hub_description,
+            gate: self.gate,
+            delay: self.delay,
+            menu_visible: self.menu_visible,
+            clock_speed: self.clock_speed,
+            dependencies: self.dependencies,
+            description: self.description,
+            camera_position: self.camera_position,
+            player_data: self.player_data,
+            synced: self.synced,
+            campaign_bound: self.campaign_bound,
+            data: Vec::default(),
+            data_offset: 0,
+            component_fn: (|_, _| -> _ {None}),
+            wire_fn: (|_, _| -> _ {None}),
+            _type: PhantomData::<AllData>,
+        })
+    }
+}
+
+impl SaveFile<AllData> {
+    pub fn components_mut(&mut self) -> &mut Vec<Component> {
+        &mut self.components
+    }
+
+    pub fn components(&self) -> &Vec<Component> {
+        &self.components
+    }
+
+    pub fn wires_mut(&mut self) -> &mut Vec<Wire> {
+        &mut self.wires
+    }
+
+    pub fn wires(&self) -> &Vec<Wire> {
+        &self.wires
+    }
 }
 
 pub fn get_bool(input: &[u8], i: &mut usize) -> Option<bool> {
@@ -636,7 +728,7 @@ fn get_wire(input: &[u8], i: &mut usize) -> Option<Wire> {
     })
 }
 
-pub fn parse_save(file_path: &Path) -> Result<SaveFile, String> {
+pub fn parse_save(file_path: &Path) -> Result<SaveFile<HeadersOnly>, String> {
     let data = fs::read(file_path).unwrap_or_else(|_| panic!("Failed to load file: {}", file_path.to_string_lossy()));
     let mut i: usize = 0;
     let version = get_u8(&data, &mut i).ok_or("Failed to get save version")?;

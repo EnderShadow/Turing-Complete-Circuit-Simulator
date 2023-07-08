@@ -164,11 +164,11 @@ mod tests {
     #[test]
     fn test_byte_adder_naive_ripple() {
         let options = Options {
-            schematic_path: PathBuf::default(),
+            schematic_path: PathBuf::from("test/resources"),
             verbosity: TEST_VERBOSITY
         };
 
-        let (components, num_wires, data_bytes_needed, delay) = read_from_save("test/resources/byte_adder/standard-ripple-carry.data", &options);
+        let (components, num_wires, data_bytes_needed, delay) = read_from_save("test/resources/byte_adder/standard-ripple-carry/circuit.data", &options);
 
         if options.verbosity >= VERBOSITY_ALL {
             for c in components.iter() {
@@ -199,11 +199,11 @@ mod tests {
     #[test]
     fn test_byte_adder_64_20() {
         let options = Options {
-            schematic_path: PathBuf::default(),
+            schematic_path: PathBuf::from("test/resources"),
             verbosity: TEST_VERBOSITY
         };
 
-        let (components, num_wires, data_bytes_needed, delay) = read_from_save("test/resources/byte_adder/decomposed-ripple-switch-carry.data", &options);
+        let (components, num_wires, data_bytes_needed, delay) = read_from_save("test/resources/byte_adder/decomposed-ripple-switch-carry/circuit.data", &options);
 
         if options.verbosity >= VERBOSITY_ALL {
             for c in components.iter() {
@@ -234,11 +234,11 @@ mod tests {
     #[test]
     fn test_5bit_decoder() {
         let options = Options {
-            schematic_path: PathBuf::default(),
+            schematic_path: PathBuf::from("test/resources"),
             verbosity: TEST_VERBOSITY
         };
 
-        let (components, num_wires, data_bytes_needed, delay) = read_from_save("test/resources/5-bit-decoder.data", &options);
+        let (components, num_wires, data_bytes_needed, delay) = read_from_save("test/resources/5-bit-decoder/circuit.data", &options);
 
         if options.verbosity >= VERBOSITY_ALL {
             for c in components.iter() {

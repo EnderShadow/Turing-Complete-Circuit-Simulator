@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use crate::save_parser::{SaveFile, get_u8, get_u16, get_u32, get_u64, get_bool, Component, ComponentType, DELETED_KINDS, Point, Wire, WireType, TELEPORT_WIRE, DIRECTIONS, SyncState, get_point, get_wires};
+use crate::save_parser::{SaveFile, get_u8, get_u16, get_u32, get_u64, get_bool, Component, ComponentType, DELETED_KINDS, Point, Wire, WireType, TELEPORT_WIRE, DIRECTIONS, SyncState, get_point, get_wires, HeadersOnly};
 use crate::save_parser::ComponentType::{Bidirectional1, Bidirectional16, Bidirectional32, Bidirectional64, Bidirectional8, Custom, Deleted12, Deleted13, Deleted14, Deleted15, Deleted16, Deleted6, Deleted7, Error, Program, Program8_1, Program8_4};
 
 fn get_string(input: &[u8], i: &mut usize) -> Option<String> {
@@ -28,34 +28,27 @@ fn get_vec_u64(input: &[u8], i: &mut usize) -> Option<Vec<u64>> {
     Some(result)
 }
 
-pub fn parse(input: &[u8], i: &mut usize) -> Option<SaveFile> {
-    Some(SaveFile {
-        version: 1,
-        save_id: get_u64(input, i)?,
-        hub_id: 0,
-        gate: get_u32(input, i)? as u64,
-        delay: get_u32(input, i)? as u64,
-        menu_visible: get_bool(input, i)?,
-        clock_speed: get_u32(input, i)?,
-        dependencies: {
-            get_u8(input, i);
-            get_vec_u64(input, i)?
-        },
-        description: get_string(input, i)?,
-        camera_position: {
-            get_bool(input, i)?;
-            get_point(input, i)?
-        },
-        synced: SyncState::Unsynced,
-        campaign_bound: false,
-        player_data: Vec::default(),
-        hub_description: String::default(),
-        components: {
-            get_bool(input, i)?;
-            get_components(input, i)?
-        },
-        wires: get_wires(input, i)?
-    })
+pub fn parse(input: &[u8], i: &mut usize) -> Option<SaveFile<HeadersOnly>> {
+    let version = 1;
+    let save_id = get_u64(input, i)?;
+    let hub_id = 0;
+    let gate = get_u32(input, i)? as u64;
+    let delay = get_u32(input, i)? as u64;
+    let menu_visible = get_bool(input, i)?;
+    let clock_speed = get_u32(input, i)?;
+    get_u8(input, i)?;
+    let dependencies = get_vec_u64(input, i)?;
+    let description = get_string(input, i)?;
+    get_bool(input, i)?;
+    let camera_position = get_point(input, i)?;
+    let synced = SyncState::Unsynced;
+    let campaign_bound = false;
+    let player_data = Vec::default();
+    let hub_description = String::default();
+    get_bool(input, i)?;
+
+    Some(SaveFile::new(version, save_id, hub_id, hub_description, gate, delay, menu_visible, clock_speed, dependencies, description, camera_position, player_data, synced, campaign_bound,
+                       get_components, get_wires, input.to_vec(), *i))
 }
 
 fn get_components(input: &[u8], i: &mut usize) -> Option<Vec<Component>> {

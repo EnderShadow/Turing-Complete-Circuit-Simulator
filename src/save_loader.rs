@@ -1,35 +1,51 @@
 use std::collections::{HashMap, HashSet, VecDeque};
-use std::ops::Not;
+use std::ops::{Not, Sub};
 use std::path::PathBuf;
 use std::rc::Rc;
 use walkdir::WalkDir;
 use crate::{Options, VERBOSITY_ALL};
-use crate::save_parser::{parse_save, Point, Wire, Component as SaveComponent, ComponentType, SaveFile};
+use crate::save_parser::{parse_save, Point, Wire, Component as SaveComponent, ComponentType, SaveFile, AllData};
 use crate::simulator::{Component, IntermediateComponent};
 use crate::simulator::ComponentType::*;
 
 pub fn read_from_save(path: &str, options: &Options) -> (Vec<Component>, usize, usize, u64) {
     let save = parse_save(PathBuf::from(path).as_path());
     let save = save.unwrap();
-
-    let mut all_components = if !save.dependencies.is_empty() {
-        read_all_circuit_data_files(options)
-    } else {
-        HashMap::default()
-    };
-
     let save_id = save.save_id;
+
+    let mut all_components = read_all_circuit_data_files(options);
     all_components.insert(save.save_id, save);
+
+
+    let mut needed_ids = HashSet::<u64>::new();
+    needed_ids.insert(save_id);
+    let mut ids_to_check = needed_ids.clone();
+    while !ids_to_check.is_empty() {
+        let mut ids_to_add = HashSet::<u64>::new();
+        all_components.iter().filter(|(id, s)| ids_to_check.contains(id)).for_each(|(_, s)| ids_to_add.extend(s.dependencies.iter()));
+
+        needed_ids.extend(ids_to_add.iter());
+        ids_to_check = ids_to_add;
+    }
+
+    let all_components: HashMap<u64, SaveFile<AllData>> = all_components.into_iter().filter_map(|(id, save)| {
+        if needed_ids.contains(&id) {
+            save.parse_remaining().map(|s| (id, s))
+        } else {
+            None
+        }
+    }).collect();
+
     let save = all_components.get(&save_id).unwrap();
 
     if options.verbosity >= VERBOSITY_ALL {
-        for c in &*save.components {
+        for c in save.components() {
             println!("{:?}", c.component_type)
         }
     }
 
-    let wire_clusters = merge_wires(&save.wires, options);
-    let components = resolve_components(&save.components, &save.dependencies, options);
+    let wire_clusters = merge_wires(save.wires(), options);
+    let components = resolve_components(save.components(), &save.dependencies, options);
 
     let components = optimize_components(components, options);
     let wire_clusters = remove_unused_wire_clusters(wire_clusters, &components, options);
@@ -107,11 +123,14 @@ fn read_all_circuit_data_files(options: &Options) -> HashMap<u64, SaveFile> {
     let mut save_files = HashMap::new();
 
     let path = options.schematic_path.as_path();
-    let walker = WalkDir::new(path);
-    for entry in walker.into_iter().filter_entry(|e| e.file_type().is_file() && e.file_name().to_string_lossy() == "circuit.data").flatten() {
-        let save_file = parse_save(entry.path());
-        if let Ok(save_file) = save_file {
-            save_files.insert(save_file.save_id, save_file);
+    let walker = WalkDir::new(path).max_depth(usize::MAX);
+    for entry in walker {
+        let entry = entry.unwrap();
+        if entry.file_type().is_file() && entry.file_name().to_string_lossy() == "circuit.data" {
+            let save_file = parse_save(entry.path());
+            if let Ok(save_file) = save_file {
+                save_files.insert(save_file.save_id, save_file);
+            }
         }
     }
 

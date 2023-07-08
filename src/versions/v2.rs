@@ -7,28 +7,25 @@ pub fn parse(input: &[u8], i: &mut usize) -> Option<SaveFile> {
     let input = tetsy_snappy::decompress(&input[*i..input.len()]).ok()?;
     let mut i = 0;
 
-    Some(SaveFile {
-        version: 2,
-        save_id: rand::random(),
-        hub_id: 0,
-        gate: get_u64(&input, &mut i)?,
-        delay: get_u64(&input, &mut i)?,
-        menu_visible: get_bool(&input, &mut i)?,
-        clock_speed: get_u32(&input, &mut i)?,
-        dependencies: get_vec_u64(&input, &mut i)?,
-        description: get_string(&input, &mut i)?,
-        camera_position: get_point(&input, &mut i)?,
-        synced: SyncState::Unsynced,
-        campaign_bound: false,
-        player_data: {
-            get_bool(&input, &mut i);
-            get_vec_u8(&input, &mut i, false);
-            get_vec_u8(&input, &mut i, false)
-        }?,
-        hub_description: String::default(),
-        components: get_components(&input, &mut i)?,
-        wires: get_wires(&input, &mut i)?
-    })
+    let version = 2;
+    let save_id = rand::random();
+    let hub_id = 0;
+    let gate = get_u64(&input, &mut i)?;
+    let delay = get_u64(&input, &mut i)?;
+    let menu_visible = get_bool(&input, &mut i)?;
+    let clock_speed = get_u32(&input, &mut i)?;
+    let dependencies = get_vec_u64(&input, &mut i)?;
+    let description = get_string(&input, &mut i)?;
+    let camera_position = get_point(&input, &mut i)?;
+    let synced = SyncState::Unsynced;
+    let campaign_bound = false;
+    get_bool(&input, &mut i)?;
+    get_vec_u8(&input, &mut i, false)?;
+    let player_data = get_vec_u8(&input, &mut i, false)?;
+    let hub_description = String::default();
+
+    Some(SaveFile::new(version, save_id, hub_id, hub_description, gate, delay, menu_visible, clock_speed, dependencies, description, camera_position, player_data, synced, campaign_bound,
+                       get_components, get_wires, input, i))
 }
 
 fn get_components(input: &[u8], i: &mut usize) -> Option<Vec<Component>> {
