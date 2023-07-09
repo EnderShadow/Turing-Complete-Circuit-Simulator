@@ -22,7 +22,7 @@ pub fn read_from_save(path: &str, options: &Options) -> (Vec<Component>, usize, 
     let mut ids_to_check = needed_ids.clone();
     while !ids_to_check.is_empty() {
         let mut ids_to_add = HashSet::<u64>::new();
-        all_components.iter().filter(|(id, s)| ids_to_check.contains(id)).for_each(|(_, s)| ids_to_add.extend(s.dependencies.iter()));
+        all_components.iter().filter(|(id, _)| ids_to_check.contains(id)).for_each(|(_, s)| ids_to_add.extend(s.dependencies.iter()));
 
         needed_ids.extend(ids_to_add.iter());
         ids_to_check = ids_to_add;
@@ -1356,7 +1356,7 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64], o
                     bidirectional: vec![]
                 }
             }
-            ComponentType::Output8z => {
+            ComponentType::Output8z | ComponentType::LevelOutput8z => {
                 IntermediateComponent {
                     component_type: SwitchedOutput(Rc::from(c.custom_string.clone()), 8),
                     position: c.position,
@@ -1857,19 +1857,150 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64], o
                 }
             }
             ComponentType::VirtualCounter32 => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
-            ComponentType::LevelOutput8z => {panic!("Not Implemented")}
-            ComponentType::Nand8 => {panic!("Not Implemented")}
-            ComponentType::Nor8 => {panic!("Not Implemented")}
-            ComponentType::Xnor8 => {panic!("Not Implemented")}
-            ComponentType::Nand16 => {panic!("Not Implemented")}
-            ComponentType::Nor16 => {panic!("Not Implemented")}
-            ComponentType::Xnor16 => {panic!("Not Implemented")}
-            ComponentType::Nand32 => {panic!("Not Implemented")}
-            ComponentType::Nor32 => {panic!("Not Implemented")}
-            ComponentType::Xnor32 => {panic!("Not Implemented")}
-            ComponentType::Nand64 => {panic!("Not Implemented")}
-            ComponentType::Nor64 => {panic!("Not Implemented")}
-            ComponentType::Xnor64 => {panic!("Not Implemented")}
+            ComponentType::Nand8 => {
+                IntermediateComponent {
+                    component_type: Nand(8),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 8),
+                        (Point::new(-1, 0), 8)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 8, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Nor8 => {
+                IntermediateComponent {
+                    component_type: Nor(8),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 8),
+                        (Point::new(-1, 0), 8)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 8, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Xnor8 => {
+                IntermediateComponent {
+                    component_type: Xnor(8),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 8),
+                        (Point::new(-1, 0), 8)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 8, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Nand16 => {
+                IntermediateComponent {
+                    component_type: Nand(16),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 16),
+                        (Point::new(-1, 0), 16)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 16, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Nor16 => {
+                IntermediateComponent {
+                    component_type: Nor(16),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 16),
+                        (Point::new(-1, 0), 16)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 16, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Xnor16 => {
+                IntermediateComponent {
+                    component_type: Xnor(16),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 16),
+                        (Point::new(-1, 0), 16)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 16, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Nand32 => {
+                IntermediateComponent {
+                    component_type: Nand(32),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 32),
+                        (Point::new(-1, 0), 32)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 32, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Nor32 => {
+                IntermediateComponent {
+                    component_type: Nor(32),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 32),
+                        (Point::new(-1, 0), 32)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 32, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Xnor32 => {
+                IntermediateComponent {
+                    component_type: Xnor(32),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 32),
+                        (Point::new(-1, 0), 32)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 32, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Nand64 => {
+                IntermediateComponent {
+                    component_type: Nand(64),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 64),
+                        (Point::new(-1, 0), 64)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 64, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Nor64 => {
+                IntermediateComponent {
+                    component_type: Nor(64),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 64),
+                        (Point::new(-1, 0), 64)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 64, false)],
+                    bidirectional: vec![]
+                }
+            }
+            ComponentType::Xnor64 => {
+                IntermediateComponent {
+                    component_type: Xnor(64),
+                    position: c.position,
+                    inputs: vec![
+                        (Point::new(-1, -1), 64),
+                        (Point::new(-1, 0), 64)
+                    ],
+                    outputs: vec![(Point::new(1, 0), 64, false)],
+                    bidirectional: vec![]
+                }
+            }
             ComponentType::Ram => {panic!("Not Implemented")}
             ComponentType::VirtualRam =>{panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::RamLatency => {panic!("Not Implemented")}
@@ -1890,11 +2021,35 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64], o
                 }
             }
             ComponentType::VirtualDelayLine8 => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
-            ComponentType::DelayLine16 => {panic!("Not Implemented")}
+            ComponentType::DelayLine16 => {
+                IntermediateComponent {
+                    component_type: DelayLine(16),
+                    position: c.position,
+                    inputs: vec![],
+                    outputs: vec![(Point::new(2, 0), 16, false)],
+                    bidirectional: vec![]
+                }
+            }
             ComponentType::VirtualDelayLine16 => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
-            ComponentType::DelayLine32 => {panic!("Not Implemented")}
+            ComponentType::DelayLine32 => {
+                IntermediateComponent {
+                    component_type: DelayLine(32),
+                    position: c.position,
+                    inputs: vec![],
+                    outputs: vec![(Point::new(2, 0), 32, false)],
+                    bidirectional: vec![]
+                }
+            }
             ComponentType::VirtualDelayLine32 => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
-            ComponentType::DelayLine64 => {panic!("Not Implemented")}
+            ComponentType::DelayLine64 => {
+                IntermediateComponent {
+                    component_type: DelayLine(64),
+                    position: c.position,
+                    inputs: vec![],
+                    outputs: vec![(Point::new(3, 0), 64, false)],
+                    bidirectional: vec![]
+                }
+            }
             ComponentType::VirtualDelayLine64 => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
             ComponentType::RamDualLoad => {panic!("Not Implemented")}
             ComponentType::VirtualRamDualLoad => {panic!("Virtual components should not appear in a save file. Found {:?}", c.component_type)}
@@ -1937,9 +2092,16 @@ fn resolve_components(save_components: &[SaveComponent], dependencies: &[u64], o
         if component.component_type.has_virtual() {
             match component.component_type {
                 DelayLine(size) => {
+                    let x_offset = match size {
+                        1..=8  => -1,
+                        9..=16  => -2,
+                        17..=32  => -2,
+                        33..=64  => -3,
+                        x => panic!("Invalid delay line size: {}", x)
+                    };
                     let virtual_component = IntermediateComponent {
                         component_type: VirtualDelayLine(size),
-                        inputs: vec![(Point::new(-1, 0), size)],
+                        inputs: vec![(Point::new(x_offset, 0), size)],
                         outputs: vec![],
                         ..component.clone()
                     };
