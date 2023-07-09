@@ -89,7 +89,7 @@ mod tests {
     use std::path::PathBuf;
     use crate::{Options, VERBOSITY_ALL, VERBOSITY_LOW};
     use crate::save_loader::read_from_save;
-    use crate::simulator::{simulate, SimulatorIO};
+    use crate::simulator::{simulate, SimulatorIO, Wire};
 
     const TEST_VERBOSITY: u64 = VERBOSITY_LOW;
 
@@ -100,31 +100,31 @@ mod tests {
             tick < 1 << 17
         }
 
-        fn handle_input(&mut self, tick: u64, input_index: usize) -> Option<u64> {
-            Some(match input_index {
+        fn handle_input(&mut self, tick: u64, input_index: usize) -> Wire {
+            match input_index {
                 0 => {
-                    tick & 0xFF
+                    Wire::new(tick, 0xFF)
                 },
                 1 => {
-                    (tick >> 8) & 0xFF
+                    Wire::new(tick >> 8, 0xFF)
                 },
                 2 => {
-                    tick >> 16
+                    Wire::new(tick >> 16, 1)
                 },
                 _ => {
                     panic!("Unexpected Input Node");
                 }
-            })
+            }
         }
 
-        fn check_output(&mut self, tick: u64, outputs: &[Option<u64>]) -> bool {
-            let input_a = self.handle_input(tick, 0).unwrap();
-            let input_b = self.handle_input(tick, 1).unwrap();
-            let carry_in = self.handle_input(tick, 2).unwrap();
+        fn check_output(&mut self, tick: u64, outputs: &[Wire]) -> bool {
+            let input_a = self.handle_input(tick, 0).value();
+            let input_b = self.handle_input(tick, 1).value();
+            let carry_in = self.handle_input(tick, 2).value();
             let expected_sum = (input_a + input_b + carry_in) & 0xFF;
             let expected_carry = (input_a + input_b + carry_in) >> 8;
-            let actual_sum = outputs[0].unwrap_or(u64::MAX);
-            let actual_carry = outputs[1].unwrap_or(u64::MAX);
+            let actual_sum = outputs[0].value();
+            let actual_carry = outputs[1].value();
 
             expected_sum == actual_sum && expected_carry == actual_carry
         }
@@ -137,27 +137,27 @@ mod tests {
             tick < 64
         }
 
-        fn handle_input(&mut self, tick: u64, input_index: usize) -> Option<u64> {
-            Some(match input_index {
+        fn handle_input(&mut self, tick: u64, input_index: usize) -> Wire {
+            match input_index {
                 0 => {
-                    tick & 0x1F
+                    Wire::new(tick, 0x1F)
                 },
                 1 => {
-                    tick >> 5
+                    Wire::new(tick >> 5, 1)
                 },
                 _ => {
                     panic!("Unexpected Input Node");
                 }
-            })
+            }
         }
 
-        fn check_output(&mut self, tick: u64, outputs: &[Option<u64>]) -> bool {
-            let input = self.handle_input(tick, 0).unwrap();
-            let disable = self.handle_input(tick, 1).unwrap();
+        fn check_output(&mut self, tick: u64, outputs: &[Wire]) -> bool {
+            let input = self.handle_input(tick, 0).value();
+            let disable = self.handle_input(tick, 1).value();
             let expected_output = if disable != 0 {0u64} else {1 << input};
             let actual_output = outputs[0];
 
-            expected_output == actual_output.unwrap_or(u64::MAX)
+            expected_output == actual_output.value()
         }
     }
 

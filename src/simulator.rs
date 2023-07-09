@@ -3,7 +3,7 @@ use std::collections::HashSet;
 use std::ops::Not;
 use std::rc::Rc;
 use std::time::Instant;
-use crate::{Options, VERBOSITY_ALL, VERBOSITY_LOW};
+use crate::{Options, VERBOSITY_ALL, VERBOSITY_LOW, VERBOSITY_NONE};
 use crate::save_parser::Point;
 
 #[derive(Debug, PartialEq, Eq, Clone)]
@@ -191,8 +191,8 @@ impl IntermediateComponent {
 
 pub trait SimulatorIO {
     fn continue_simulation(&mut self, tick: u64) -> bool;
-    fn handle_input(&mut self, tick: u64, input_index: usize) -> Option<u64>;
-    fn check_output(&mut self, tick: u64, outputs: &[Option<u64>]) -> bool;
+    fn handle_input(&mut self, tick: u64, input_index: usize) -> Wire;
+    fn check_output(&mut self, tick: u64, outputs: &[Wire]) -> bool;
 }
 
 pub struct DefaultSimIO {
@@ -220,11 +220,11 @@ impl SimulatorIO for DefaultSimIO {
         tick < self.max_ticks
     }
 
-    fn handle_input(&mut self, _tick: u64, _input_index: usize) -> Option<u64> {
-        Some(0)
+    fn handle_input(&mut self, _tick: u64, _input_index: usize) -> Wire {
+        Wire::default()
     }
 
-    fn check_output(&mut self, _tick: u64, _outputs: &[Option<u64>]) -> bool {
+    fn check_output(&mut self, _tick: u64, _outputs: &[Wire]) -> bool {
         true
     }
 }
@@ -289,18 +289,18 @@ fn dag_sort(mut remaining_components: Vec<Component>) -> Result<Vec<Component>, 
     Ok(sorted)
 }
 
-#[derive(Clone, Copy, Debug)]
-struct Wire {
-    data: u64,
-    driven_mask: u64
+#[derive(Clone, Copy, Debug, Default)]
+pub struct Wire {
+    pub data: u64,
+    pub driven_mask: u64
 }
 
 impl Wire {
-    fn new(value: u64, driven_mask: u64) -> Self {
+    pub fn new(value: u64, driven_mask: u64) -> Self {
         Wire { data: value, driven_mask}
     }
 
-    fn value(&self) -> u64 {
+    pub fn value(&self) -> u64 {
         self.data & self.driven_mask
     }
 }
@@ -317,8 +317,8 @@ fn read_wire8(wires: &[Wire], index: usize) -> u8 {
     wires[index].value() as u8
 }
 
-fn write_wire(wires: &mut [Wire], index: usize, size: u8, new_value: u64, new_driven: u64) -> Result<(), String>{
-    let wire = &mut wires[index];
+fn write_wire(wires: &mut [Wire], index: usize, size: u8, new_value: u64, new_driven: u64) -> Result<(), String> {
+    let wire = wires.get_mut(index).unwrap();
     let data = &mut wire.data;
     let driven = &mut wire.driven_mask;
     let size_mask = u64::MAX >> (64 - size);
@@ -334,6 +334,11 @@ fn write_wire(wires: &mut [Wire], index: usize, size: u8, new_value: u64, new_dr
     }
 }
 
+#[inline]
+fn write_wire2(wires: &mut [Wire], index: usize, size: u8, new_wire: Wire) -> Result<(), String> {
+    write_wire(wires, index, size, new_wire.data, new_wire.driven_mask)
+}
+
 fn fast_read_wire(wires: &[Wire], index: usize, size: u8) -> u64 {
     wires[index].data & (u64::MAX >> (64 - size))
 }
@@ -346,7 +351,7 @@ fn fast_read_wire8(wires: &[Wire], index: usize) -> u8 {
     wires[index].data as u8
 }
 
-fn fast_write_wire(wires: &mut [Wire], index: usize, size: u8, new_value: u64, _new_driven: u64) -> Result<(), String>{
+fn fast_write_wire(wires: &mut [Wire], index: usize, size: u8, new_value: u64, _new_driven: u64) -> Result<(), String> {
     let wire = &mut wires[index].data;
     let size_mask = u64::MAX >> (64 - size);
     let new_value = new_value & size_mask;
@@ -399,7 +404,7 @@ pub fn simulate<T: SimulatorIO>(components: Vec<Component>, num_wires: usize, la
 
     let mut iteration = 0u64;
     let mut wires = vec![Wire::new(0, 0); num_wires + 1];
-    let mut tick_outputs: Vec<Option<u64>> = vec![None; num_outputs];
+    let mut tick_outputs: Vec<Wire> = vec![Wire::default(); num_outputs];
 
     let end = Instant::now();
     if options.verbosity >= VERBOSITY_LOW {
@@ -414,38 +419,38 @@ pub fn simulate<T: SimulatorIO>(components: Vec<Component>, num_wires: usize, la
                 ComponentType::Nop => {}
                 ComponentType::Input(name, x) => {
                     let value = sim_io_handler.handle_input(iteration, c.numeric_id);
-                    if let Some(value) = value {
-                        c.outputs[0].0.map(|i| { write_wire(&mut wires, i, *x, value, u64::MAX >> (64 - *x)) }).unwrap_or(Ok(()))?;
-                    }
+                    c.outputs[0].0.map(|i| { write_wire2(&mut wires, i, *x, value) }).unwrap_or(Ok(()))?;
                 }
                 ComponentType::SwitchedInput(name, x) => {
                     let enable = read_wire1(&wires, c.inputs[0].0.unwrap_or(num_wires));
                     if enable {
                         let value = sim_io_handler.handle_input(iteration, c.numeric_id);
-                        if let Some(value) = value {
-                            c.outputs[0].0.map(|i| { write_wire(&mut wires, i, *x, value, u64::MAX >> (64 - *x)) }).unwrap_or(Ok(()))?;
-                        }
+                        c.outputs[0].0.map(|i| { write_wire2(&mut wires, i, *x, value) }).unwrap_or(Ok(()))?;
                     }
                 }
                 ComponentType::InputMultiBitPin => {
-                    let value = sim_io_handler.handle_input(iteration, c.numeric_id);
-                    if let Some(value) = value {
-                        for (idx, output) in c.outputs.iter().enumerate() {
-                            output.0.map(|i| { write_wire(&mut wires, i, 1, value >> idx, 1) }).unwrap_or(Ok(()))?;
-                        }
+                    let value = sim_io_handler.handle_input(iteration, c.numeric_id).data;
+                    for (idx, output) in c.outputs.iter().enumerate() {
+                        output.0.map(|i| { write_wire(&mut wires, i, 1, value >> idx, 1) }).unwrap_or(Ok(()))?;
                     }
                 }
                 ComponentType::Output(name, x) => {
-                    let v = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
-                    tick_outputs[c.numeric_id] = Some(v);
+                    let mut w = wires[c.inputs[0].0.unwrap_or(num_wires)];
+                    let mask = u64::MAX >> (64 - *x);
+                    w.data &= mask;
+                    w.driven_mask &= mask;
+                    tick_outputs[c.numeric_id] = w;
                 }
                 ComponentType::SwitchedOutput(name, x) => {
                     let enable = read_wire1(&wires, c.inputs[0].0.unwrap_or(num_wires));
                     if enable {
-                        let v = read_wire(&wires, c.inputs[1].0.unwrap_or(num_wires), *x);
-                        tick_outputs[c.numeric_id] = Some(v);
+                        let mut w = wires[c.inputs[1].0.unwrap_or(num_wires)];
+                        let mask = u64::MAX >> (64 - *x);
+                        w.data &= mask;
+                        w.driven_mask &= mask;
+                        tick_outputs[c.numeric_id] = w;
                     } else {
-                        tick_outputs[c.numeric_id] = None;
+                        tick_outputs[c.numeric_id] = Wire::default();
                     }
                 }
                 ComponentType::OutputMultiBitPin => {
@@ -454,11 +459,14 @@ pub fn simulate<T: SimulatorIO>(components: Vec<Component>, num_wires: usize, la
                         let pin_value = read_wire(&wires, input.0.unwrap_or(num_wires), 1);
                         value |= pin_value << idx
                     }
-                    tick_outputs[c.numeric_id] = Some(value);
+                    tick_outputs[c.numeric_id] = Wire::new(value, u64::MAX >> (64 - c.inputs.len()));
                 }
                 ComponentType::BidirectionalIO(name, x) => {
-                    let v = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
-                    tick_outputs[c.numeric_id] = Some(v);
+                    let mut w = wires[c.inputs[0].0.unwrap_or(num_wires)];
+                    let mask = u64::MAX >> (64 - *x);
+                    w.data &= mask;
+                    w.driven_mask &= mask;
+                    tick_outputs[c.numeric_id] = w;
                 }
                 ComponentType::Buffer(x) => {
                     let input = read_wire(&wires, c.inputs[0].0.unwrap_or(num_wires), *x);
@@ -851,11 +859,15 @@ pub fn simulate<T: SimulatorIO>(components: Vec<Component>, num_wires: usize, la
             }
         }
 
-        if print_output && !tick_outputs.iter().any(|o| o.is_some()) {
+        if print_output && !tick_outputs.iter().any(|o| o.driven_mask != 0) {
             println!("Tick: {}", iteration);
             for (index, output) in tick_outputs.iter().enumerate() {
-                if output.is_some() {
-                    println!("\tOutput {}: {}", index, output.unwrap());
+                if output.driven_mask != 0 {
+                    if options.verbosity == VERBOSITY_NONE {
+                        println!("\tOutput {}: {}", index, output.value());
+                    } else {
+                        println!("\tOutput {}: {:X}/{:X}", index, output.data, output.driven_mask);
+                    }
                 }
             }
         }
