@@ -359,7 +359,7 @@ fn fast_write_wire(wires: &mut [Wire], index: usize, size: u8, new_value: u64, _
     Ok(())
 }
 
-pub fn simulate<T: SimulatorIO>(components: Vec<Component>, num_wires: usize, latency_ram_tick_delay: u64, data_needed_bytes: usize, print_output: bool, sim_io_handler: &mut T, options: &Options) -> Result<u64, String> {
+pub fn simulate<T: SimulatorIO>(components: Vec<Component>, num_wires: usize, data_needed_bytes: usize, print_output: bool, sim_io_handler: &mut T, options: &Options) -> Result<u64, String> {
     let mut data = vec![0u8; data_needed_bytes];
 
     let start = Instant::now();

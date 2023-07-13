@@ -11,7 +11,8 @@ mod save_loader;
 #[derive(Default)]
 pub struct Options {
     schematic_path: PathBuf,
-    verbosity: u64
+    verbosity: u64,
+    latency_ram_delay_ticks: u64
 }
 
 const VERBOSITY_NONE: u64 = 0;
@@ -31,6 +32,7 @@ fn main() {
         ap.refer(&mut max_ticks).add_option(&["-t", "--max-ticks"], Store, "Maximum ticks to run the simulation for");
         ap.refer(&mut schematic_path).add_option(&["-s", "--schematics"], StoreOption, "Custom path for looking for schematics when custom components are needed");
         ap.refer(&mut options.verbosity).add_option(&["-v", "--verbose"], IncrBy(1), "Display more verbose information");
+        ap.refer(&mut options.latency_ram_delay_ticks).add_option(&["-l", "--latency-ram-ticks"], Store, "The number of ticks that latency ram should delay reads and writes by. Must be greater than 0");
         ap.parse_args_or_exit();
 
         // Explicitly dropping here removes the mutable references
@@ -67,13 +69,15 @@ fn main() {
         }
     }
 
-    let latency_ram_delay = if delay > 0 {
-        (1024f64 / (delay as f64)).ceil() as u64
-    } else {
-        1024
-    };
+    if options.latency_ram_delay_ticks == 0 {
+        options.latency_ram_delay_ticks = if delay > 0 {
+            (1024f64 / (delay as f64)).ceil() as u64
+        } else {
+            1024
+        };
+    }
 
-    let result = simulate(components, num_wires, latency_ram_delay, data_bytes_needed, true, &mut DefaultSimIO::new(max_ticks), &options);
+    let result = simulate(components, num_wires, data_bytes_needed, true, &mut DefaultSimIO::new(max_ticks), &options);
     match result {
         Err(error) => {
             println!("{}", error);
@@ -163,9 +167,10 @@ mod tests {
 
     #[test]
     fn test_byte_adder_naive_ripple() {
-        let options = Options {
+        let mut options = Options {
             schematic_path: PathBuf::from("test/resources"),
-            verbosity: TEST_VERBOSITY
+            verbosity: TEST_VERBOSITY,
+            latency_ram_delay_ticks: 0
         };
 
         let (components, num_wires, data_bytes_needed, delay) = read_from_save("test/resources/byte_adder/standard-ripple-carry/circuit.data", &options);
@@ -176,13 +181,13 @@ mod tests {
             }
         }
 
-        let latency_ram_delay = if delay > 0 {
+        options.latency_ram_delay_ticks = if delay > 0 {
             (1024f64 / (delay as f64)).ceil() as u64
         } else {
             1024
         };
 
-        let result = simulate(components, num_wires, latency_ram_delay, data_bytes_needed, false, &mut ByteAdderIOHandler, &options);
+        let result = simulate(components, num_wires, data_bytes_needed, false, &mut ByteAdderIOHandler, &options);
 
         match &result {
             Err(error) => {
@@ -198,9 +203,10 @@ mod tests {
 
     #[test]
     fn test_byte_adder_64_20() {
-        let options = Options {
+        let mut options = Options {
             schematic_path: PathBuf::from("test/resources"),
-            verbosity: TEST_VERBOSITY
+            verbosity: TEST_VERBOSITY,
+            latency_ram_delay_ticks: 0
         };
 
         let (components, num_wires, data_bytes_needed, delay) = read_from_save("test/resources/byte_adder/decomposed-ripple-switch-carry/circuit.data", &options);
@@ -211,13 +217,13 @@ mod tests {
             }
         }
 
-        let latency_ram_delay = if delay > 0 {
+        options.latency_ram_delay_ticks = if delay > 0 {
             (1024f64 / (delay as f64)).ceil() as u64
         } else {
             1024
         };
 
-        let result = simulate(components, num_wires, latency_ram_delay, data_bytes_needed, false, &mut ByteAdderIOHandler, &options);
+        let result = simulate(components, num_wires, data_bytes_needed, false, &mut ByteAdderIOHandler, &options);
 
         match &result {
             Err(error) => {
@@ -233,9 +239,10 @@ mod tests {
 
     #[test]
     fn test_5bit_decoder() {
-        let options = Options {
+        let mut options = Options {
             schematic_path: PathBuf::from("test/resources"),
-            verbosity: TEST_VERBOSITY
+            verbosity: TEST_VERBOSITY,
+            latency_ram_delay_ticks: 0
         };
 
         let (components, num_wires, data_bytes_needed, delay) = read_from_save("test/resources/5-bit-decoder/circuit.data", &options);
@@ -246,13 +253,13 @@ mod tests {
             }
         }
 
-        let latency_ram_delay = if delay > 0 {
+        options.latency_ram_delay_ticks = if delay > 0 {
             (1024f64 / (delay as f64)).ceil() as u64
         } else {
             1024
         };
 
-        let result = simulate(components, num_wires, latency_ram_delay, data_bytes_needed, false, &mut Decoder5BitIOHandler, &options);
+        let result = simulate(components, num_wires, data_bytes_needed, false, &mut Decoder5BitIOHandler, &options);
         match &result {
             Err(error) => {
                 println!("{}", error);
