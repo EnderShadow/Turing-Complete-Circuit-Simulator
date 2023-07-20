@@ -1,9 +1,9 @@
 use std::collections::HashMap;
 use rand;
-use crate::save_parser::{SaveFile, get_u8, get_u16, get_u32, get_u64, get_bool, get_string, get_vec_u8, get_vec_u64, get_point, Component, ComponentType, DELETED_KINDS, Point, Wire, WireType, TELEPORT_WIRE, DIRECTIONS, SyncState, get_wires};
+use crate::save_parser::{SaveFile, get_u8, get_u16, get_u32, get_u64, get_bool, get_string, get_vec_u8, get_vec_u64, get_point, Component, ComponentType, DELETED_KINDS, Point, Wire, WireType, TELEPORT_WIRE, DIRECTIONS, SyncState, get_wires, HeadersOnly};
 use crate::save_parser::ComponentType::{Bidirectional1, Bidirectional16, Bidirectional32, Bidirectional64, Bidirectional8, Custom, Deleted12, Deleted13, Deleted14, Deleted15, Deleted16, Error, Program, Program8_1, Program8_4};
 
-pub fn parse(input: &[u8], i: &mut usize) -> Option<SaveFile> {
+pub fn parse(input: &[u8], i: &mut usize) -> Option<SaveFile<HeadersOnly>> {
     let input = tetsy_snappy::decompress(&input[*i..input.len()]).ok()?;
     let mut i = 0;
 

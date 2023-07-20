@@ -4,7 +4,7 @@ use std::path::PathBuf;
 use std::rc::Rc;
 use walkdir::WalkDir;
 use crate::{Options, VERBOSITY_ALL};
-use crate::save_parser::{parse_save, Point, Wire, Component as SaveComponent, ComponentType, SaveFile, AllData};
+use crate::save_parser::{parse_save, Point, Wire, Component as SaveComponent, ComponentType, SaveFile, AllData, HeadersOnly};
 use crate::simulator::{Component, IntermediateComponent};
 use crate::simulator::ComponentType::*;
 
@@ -119,7 +119,7 @@ pub fn read_from_save(path: &str, options: &Options) -> (Vec<Component>, usize, 
     (components, wire_clusters.len(), offset, save.delay)
 }
 
-fn read_all_circuit_data_files(options: &Options) -> HashMap<u64, SaveFile> {
+fn read_all_circuit_data_files(options: &Options) -> HashMap<u64, SaveFile<HeadersOnly>> {
     let mut save_files = HashMap::new();
 
     let path = options.schematic_path.as_path();

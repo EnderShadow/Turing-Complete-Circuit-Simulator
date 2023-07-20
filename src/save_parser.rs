@@ -449,7 +449,9 @@ pub struct SaveFile<T = HeadersOnly> {
     pub player_data: Vec<u8>,
     pub synced: SyncState,
     pub campaign_bound: bool,
+    #[derivative(Debug="ignore")]
     data: Vec<u8>,
+    #[derivative(Debug="ignore")]
     data_offset: usize,
     #[derivative(Debug="ignore")]
     component_fn: fn(&[u8], &mut usize) -> Option<Vec<Component>>,
